@@ -1,2 +1,2 @@
 # master_thesis
-Model Enumeration using IPASIR-UP without Blocking Clauses
+Projected Enumerartion with IPASIR-UP without blocking clauses
