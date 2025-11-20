@@ -7,6 +7,7 @@
 #include "../utils/argparser.hpp"
 #include "../utils/strings.hpp"
 #include "../utils/parser.hpp"
+#include <unordered_set>
 
 
 using tclause = std::vector<int>;
@@ -47,6 +48,21 @@ bool sat(tcnf cnf, tclause model) {
 }
 
 
+int get_next_decision(const std::vector<int>& v) {
+    std::unordered_set<int> s;
+    s.reserve(v.size() * 2);     // Performance-Boost
+
+    for (int x : v)
+        s.insert(std::abs(x));
+
+    int candidate = 1;
+    while (s.count(candidate))
+        ++candidate;
+    return candidate;
+}
+
+
+
 class EnumProp : public CaDiCaL::ExternalPropagator {
 
     public:
@@ -65,11 +81,12 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         int dl = 0;
         int max_var;
         bool backtrack = false;
+        bool finished = false;
 
         tcnf all_models;
 
         void push(int lit, int dl, bool is_decision) {
-            values.push_back(lit/abs(lit));
+            values.push_back(lit);
             dls.push_back(dl);
             is_ds.push_back(is_decision);
         };
@@ -87,6 +104,8 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         }
 
         bool cb_check_found_model (const tclause &model) override {
+            if (VERBOSE) std::cout << "c cb_check_found_model:\n";
+            if (finished) return false;
 
             tclause new_model;
             // build new_model step by step
@@ -97,21 +116,17 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
             all_models.push_back(new_model);
 
             if (VERBOSE) {
-                std::cout << "c new model: " + to_string(model) + "\nc\n";
+                std::cout << "c " + to_string(model) + "\nc\n";
             }
 
             // finding highest decision level with positive decision
             int index = values.size() - 1;
             while (true) {
-                if (is_ds[index] && values[index] == 1) break;
+                if (is_ds[index] && values[index] > 0) break;
                 index--;
             }
 
             dl = dls[index] - 1;
-
-            if (VERBOSE) {
-                std::cout << "c backtrack to decision level " + std::to_string(dl) + ":\n";
-            }
 
             // backtrack to last decision level
             solver->force_backtrack(dl);
@@ -128,39 +143,48 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
 
         // this function is called when observed variables are assigned (either by BCP, Decide, or Learning a unit clause). It has a single read-only argument containing literals that became satisfied by the new assignment. In case the notification reports more than one literal, it is guaranteed that all of the reported literals were assigned on the same (current) decision level.
         void notify_assignment(const std::vector<int> &list) override {
+            if (VERBOSE) std::cout << "c notify_assignment:\n";
+            if (finished) return;
             for (int lit : list) {
-                if (abs(lit) == (int)values.size() - 1) continue; // this happens if the literal is already on the stack (its a decision)
+                if (lit == values.back()) continue; // this happens if the literal is already on the stack (its a decision)
                 push(lit, dl, false);
-                if (VERBOSE) std::cout << "c forced: " + std::to_string(lit) + "\n";
+                if (VERBOSE) std::cout << "c forced: " + std::to_string(lit) + "@" + std::to_string(dl) + "\n";
             }
         };
 
         // the call of this function indicates to the user that on the trail a new decision level has started. The function does not report the actual decision that started this new level or the current decision level — it only reports that a decision happened and thus, the decision level is increased.
         void notify_new_decision_level () override {
+            if (VERBOSE) std::cout << "c notify_new_decision_level:\n";
             dl++;
-            if (VERBOSE) std::cout << "c notified new decision level " + std::to_string(dl) + "\n";
+            if (VERBOSE) std::cout << "c " + std::to_string(dl) + "\n";
         };
 
         // this function indicates that the solver backtracked to a lower decision level. Its single argument reports the new decision level. All assignments that were made above this target decision level must be considered as unassigned.
         void notify_backtrack (size_t new_level) override {
+            if (VERBOSE) std::cout << "c notify_backtrack:\n";
             if (dc == cndc) {
                 if (dl == -1) return;
                 std::cout << "c\nc terminating search. " + std::to_string(cndc) + " decision(s), all negative\n";
                 solver->terminate();
+                finished = true;
                 return;
             }
 
+            if (VERBOSE) std::cout << "c to level " + std::to_string(new_level) + "\n";
             while (dls.back() > (int)new_level) {
                 auto [val, level, is_decision] = pop();
                 if (is_decision) dc--;
-                if (VERBOSE) std::cout << "c removed " + std::to_string(val * (int)values.size()) + "@" + std::to_string(level) + "\n";
+                if (VERBOSE) std::cout << "c removed " + std::to_string(val) + "@" + std::to_string(level) + "\n";
             }
+            dl = new_level;
             if (VERBOSE) std::cout << "c\n";
         };
 
         // called before the solver makes a decision. Return your decision or 0 (solver makes one).
         int cb_decide () override {
-            int var = values.size();
+            if (VERBOSE) std::cout << "c cb_decide:\n";
+
+            int var = get_next_decision(values);
 
             if (var > max_var) {
                 if (VERBOSE) std::cout << "c all variables assigned\n";
@@ -180,7 +204,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
 
             push(lit, dl + 1, true);
 
-            if (VERBOSE) std::cout << "c decided " + std::to_string(lit) + "@" + std::to_string(dl + 1) + "\n";
+            if (VERBOSE) std::cout << "c " + std::to_string(lit) + "@" + std::to_string(dl + 1) + "\n";
 
             return lit;
         };
