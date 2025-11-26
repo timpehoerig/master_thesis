@@ -24,7 +24,7 @@ num_bc=$(grep -v '^[[:space:]]*$' $path_out_bc | tail -n 1)
 num_dualiza=$(grep -v '^[[:space:]]*$' $path_out_dualiza | tail -n 1)
 
 if [ "$num_bc" = "$num_dualiza" ]; then
-    echo "eq $num_bc"
+    echo "eq"
 else
     echo "neq $num_bc vs $num_dualiza"
 fi

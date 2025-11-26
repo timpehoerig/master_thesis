@@ -50,7 +50,7 @@ bool sat(tcnf cnf, tclause model) {
 
 int get_next_decision(const std::vector<int>& v) {
     std::unordered_set<int> s;
-    s.reserve(v.size() * 2);     // Performance-Boost
+    s.reserve(v.size() * 2);     // Performance-Boost?
 
     for (int x : v)
         s.insert(std::abs(x));
@@ -82,6 +82,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         int max_var;
         bool backtrack = false;
         bool finished = false;
+        bool false_backtrack = false;
 
         tcnf all_models;
 
@@ -107,16 +108,18 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
             if (VERBOSE) std::cout << "c cb_check_found_model:\n";
             if (finished) return false;
 
-            tclause new_model;
-            // build new_model step by step
-            for (int lit : model) {
-                new_model.push_back(lit);
-            }
+            if (!false_backtrack) {
+                tclause new_model;
+                // build new_model step by step
+                for (int lit : model) {
+                    new_model.push_back(lit);
+                }
 
-            all_models.push_back(new_model);
+                all_models.push_back(new_model);
 
-            if (VERBOSE) {
-                std::cout << "c " + to_string(model) + "\nc\n";
+                if (VERBOSE) {
+                    std::cout << "c " + to_string(model) + "\nc\n";
+                }
             }
 
             // finding highest decision level with positive decision
@@ -161,6 +164,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
 
         // this function indicates that the solver backtracked to a lower decision level. Its single argument reports the new decision level. All assignments that were made above this target decision level must be considered as unassigned.
         void notify_backtrack (size_t new_level) override {
+            false_backtrack = dl - 1 == (int)new_level;
             if (VERBOSE) std::cout << "c notify_backtrack:\n";
             if (dc == cndc) {
                 if (dl == -1) return;
@@ -173,7 +177,11 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
             if (VERBOSE) std::cout << "c to level " + std::to_string(new_level) + "\n";
             while (dls.back() > (int)new_level) {
                 auto [val, level, is_decision] = pop();
-                if (is_decision) dc--;
+                if (is_decision) {
+                    dc--;
+                    false_backtrack &= val < 0;
+                    if (VERBOSE && false_backtrack) std::cout << "c duplicating decision for " + std::to_string(-val) + "\n";
+                }
                 if (VERBOSE) std::cout << "c removed " + std::to_string(val) + "@" + std::to_string(level) + "\n";
             }
             dl = new_level;
@@ -183,6 +191,18 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         // called before the solver makes a decision. Return your decision or 0 (solver makes one).
         int cb_decide () override {
             if (VERBOSE) std::cout << "c cb_decide:\n";
+
+            if (false_backtrack) {
+                int index = values.size() - 1;
+                while (true) {
+                    if (is_ds[index] && values[index] > 0) break;
+                    index--;
+                }
+                if (VERBOSE) std::cout << "c backtracking to: " + std::to_string(index) + " to avoid duplication\n";
+                solver->force_backtrack(dls[index] - 1);
+                false_backtrack = false;
+                backtrack = true; 
+            }
 
             int var = get_next_decision(values);
 
