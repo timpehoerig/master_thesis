@@ -1,11 +1,17 @@
 #!/bin/bash
 
 echo -ne "Correct Solutions: \r"
-same=true
 count=0
-while [ same ]; do
-    out=$(./test_one.sh)
-    same=$([ "$out" = "eq" ])
-    count=$((count + 1))
-    echo -ne "Correct Solutions:" $count "\r"
+while true; do
+    out=$(./test_one.sh | tail -n 1)
+    if [[ $out == neq* ]]; then
+        echo $out
+        break
+    fi
+    x=${out#* }
+    if [[ "$x" -gt 0 ]]; then
+        count=$((count + 1))
+        echo -ne "Correct Solutions:" $count "\r"
+    fi
 done
+echo

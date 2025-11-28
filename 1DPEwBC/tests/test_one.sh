@@ -20,11 +20,12 @@ mv $path_bcp_terminal_out ./tmp/
 echo "dualiza > $path_out_dualiza"
 ../../dualiza/dualiza $path_fuzzed_cnf > $path_out_dualiza
 
-num_bc=$(grep -v '^[[:space:]]*$' $path_out_bc | tail -n 1)
+num_bc=$(grep -A 1 "NUMBER SATISFYING ASSIGNMENTS" $path_out_bc | tail -n 1)
+
 num_dualiza=$(grep -v '^[[:space:]]*$' $path_out_dualiza | tail -n 1)
 
 if [ "$num_bc" = "$num_dualiza" ]; then
-    echo "eq"
+    echo "eq $num_bc"
 else
     echo "neq $num_bc vs $num_dualiza"
 fi

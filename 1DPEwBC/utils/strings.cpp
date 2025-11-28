@@ -38,3 +38,36 @@ std::string to_string(tcnf models, bool neg) {
 
     return str;
 }
+
+// to_string(values, dls, is_ds) == ..."
+std::string to_string(const std::vector<int> &values, const std::vector<int> &dls, const std::vector<bool> &is_ds) {
+    std::string top = "c lvl";
+    std::string mid = "c val";
+    std::string bot = "c why";
+    
+    int old_l = -1;
+    for (size_t i = 1; i < values.size(); i++) {
+        int v = values[i];
+        int l = dls[i];
+        bool d = is_ds[i];
+
+        if (l > old_l) {
+            top += " | " + std::to_string(l) + " ";
+            mid += " | " + std::to_string(v) + " ";
+            bot += " | " + std::string((d ? "d" : "f")) + " ";
+            old_l = l;
+        } else {
+            mid += std::to_string(v) + " ";
+            bot += std::string((d ? "d" : "f")) + " ";
+        }
+        size_t m = std::max(top.size(), std::max(mid.size(), bot.size()));
+        while (top.size() < m) top += " ";
+        while (mid.size() < m) mid += " ";
+        while (bot.size() < m) bot += " ";
+    }
+    top += " |";
+    mid += " |";
+    bot += " |";
+
+    return top + + "\n" + mid + "\n" + bot + "\n";
+}

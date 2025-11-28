@@ -83,6 +83,8 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         bool backtrack = false;
         bool finished = false;
         bool false_backtrack = false;
+        bool save_decision = false;
+        int saved_decision = 0;
 
         tcnf all_models;
 
@@ -105,7 +107,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         }
 
         bool cb_check_found_model (const tclause &model) override {
-            if (VERBOSE) std::cout << "c cb_check_found_model:\n";
+            if (VERBOSE) std::cout << "c cb_check_found_model:" << std::endl;
             if (finished) return false;
 
             if (!false_backtrack) {
@@ -118,7 +120,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
                 all_models.push_back(new_model);
 
                 if (VERBOSE) {
-                    std::cout << "c " + to_string(model) + "\nc\n";
+                    std::cout << "c " + to_string(model) + "\nc" << std::endl;
                 }
             }
 
@@ -129,10 +131,8 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
                 index--;
             }
 
-            dl = dls[index] - 1;
-
             // backtrack to last decision level
-            solver->force_backtrack(dl);
+            solver->force_backtrack(dls[index] - 1);
             backtrack = true;
 
             // always return false -> solver can only terminate with UNSAT: no more solutions
@@ -146,51 +146,64 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
 
         // this function is called when observed variables are assigned (either by BCP, Decide, or Learning a unit clause). It has a single read-only argument containing literals that became satisfied by the new assignment. In case the notification reports more than one literal, it is guaranteed that all of the reported literals were assigned on the same (current) decision level.
         void notify_assignment(const std::vector<int> &list) override {
-            if (VERBOSE) std::cout << "c notify_assignment:\n";
+            if (VERBOSE) std::cout << "c notify_assignment:" << std::endl;
             if (finished) return;
             for (int lit : list) {
-                if (lit == values.back()) continue; // this happens if the literal is already on the stack (its a decision)
-                push(lit, dl, false);
-                if (VERBOSE) std::cout << "c forced: " + std::to_string(lit) + "@" + std::to_string(dl) + "\n";
+                if (dls.back() < dl && dl > 0) {
+                    push(lit, dl, true);
+                    if (VERBOSE) std::cout << "c decided: " + std::to_string(lit) + "@" + std::to_string(dl) << std::endl;
+                } else { // this happens if the literal is already on the stack (its a decision)
+                    push(lit, dl, false);
+                    if (VERBOSE) std::cout << "c forced: " + std::to_string(lit) + "@" + std::to_string(dl) << std::endl;
+                };
             }
+            if (VERBOSE) std::cout << to_string(values, dls, is_ds);
         };
 
         // the call of this function indicates to the user that on the trail a new decision level has started. The function does not report the actual decision that started this new level or the current decision level — it only reports that a decision happened and thus, the decision level is increased.
         void notify_new_decision_level () override {
-            if (VERBOSE) std::cout << "c notify_new_decision_level:\n";
+            if (VERBOSE) std::cout << "c notify_new_decision_level:" << std::endl;
             dl++;
-            if (VERBOSE) std::cout << "c " + std::to_string(dl) + "\n";
+            if (VERBOSE) std::cout << "c " + std::to_string(dl) << std::endl;
         };
 
         // this function indicates that the solver backtracked to a lower decision level. Its single argument reports the new decision level. All assignments that were made above this target decision level must be considered as unassigned.
         void notify_backtrack (size_t new_level) override {
-            false_backtrack = dl - 1 == (int)new_level;
-            if (VERBOSE) std::cout << "c notify_backtrack:\n";
+            if (VERBOSE) std::cout << "c notify_backtrack:" << std::endl;
             if (dc == cndc) {
                 if (dl == -1) return;
-                std::cout << "c\nc terminating search. " + std::to_string(cndc) + " decision(s), all negative\n";
+                std::cout << "c\nc terminating search. " + std::to_string(cndc) + " decision(s), all negative" << std::endl;
                 solver->terminate();
                 finished = true;
                 return;
             }
 
-            if (VERBOSE) std::cout << "c to level " + std::to_string(new_level) + "\n";
+            if (VERBOSE) std::cout << "c to level " + std::to_string(new_level) << std::endl;
+            false_backtrack = dl != dls.back();
+            if (VERBOSE && false_backtrack) std::cout << "c false_backtrack = true" << std::endl;
             while (dls.back() > (int)new_level) {
                 auto [val, level, is_decision] = pop();
                 if (is_decision) {
                     dc--;
-                    false_backtrack &= val < 0;
-                    if (VERBOSE && false_backtrack) std::cout << "c duplicating decision for " + std::to_string(-val) + "\n";
                 }
-                if (VERBOSE) std::cout << "c removed " + std::to_string(val) + "@" + std::to_string(level) + "\n";
+                if (VERBOSE) std::cout << "c removed " + std::to_string(val) + "@" + std::to_string(level) << std::endl;
             }
             dl = new_level;
-            if (VERBOSE) std::cout << "c\n";
+            if (VERBOSE) std::cout << to_string(values, dls, is_ds);
         };
 
         // called before the solver makes a decision. Return your decision or 0 (solver makes one).
         int cb_decide () override {
-            if (VERBOSE) std::cout << "c cb_decide:\n";
+            if (VERBOSE) std::cout << "c cb_decide:" << std::endl;
+            if (save_decision) {
+                // check if its already assigned
+                if (VERBOSE) std::cout << "c found saved decision: " + std::to_string(saved_decision) << std::endl;
+                save_decision = false;
+                int lit = saved_decision;
+                saved_decision = 0;
+                if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
+                return lit;
+            }
 
             if (false_backtrack) {
                 int index = values.size() - 1;
@@ -198,16 +211,18 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
                     if (is_ds[index] && values[index] > 0) break;
                     index--;
                 }
-                if (VERBOSE) std::cout << "c backtracking to: " + std::to_string(index) + " to avoid duplication\n";
+                if (VERBOSE) std::cout << "c backtracking to: " + std::to_string(dls[index] - 1) + " to avoid duplication" << std::endl;
                 solver->force_backtrack(dls[index] - 1);
                 false_backtrack = false;
-                backtrack = true; 
+                backtrack = true;
+                save_decision = true;
+                if (VERBOSE) std::cout << "end false_backtrack" << std::endl;
             }
 
             int var = get_next_decision(values);
 
             if (var > max_var) {
-                if (VERBOSE) std::cout << "c all variables assigned\n";
+                if (VERBOSE) std::cout << "c all variables assigned" << std::endl;
                 return 0;
             }
 
@@ -222,10 +237,12 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
 
             dc++;
 
-            push(lit, dl + 1, true);
+            if (save_decision) {
+                if (VERBOSE) std::cout << "c saved decision: " + std::to_string(lit) << std::endl;
+                saved_decision = lit;
+            }
 
-            if (VERBOSE) std::cout << "c " + std::to_string(lit) + "@" + std::to_string(dl + 1) + "\n";
-
+            if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
             return lit;
         };
 
@@ -264,9 +281,9 @@ int main(int argc, char* argv[]) {
     }
 
     if (VERBOSE) {
-        std::cout << "c Runnning the solver with the following options:\n";
-        if (COUNT) std::cout << "c \tCOUNT\n";
-        if (VERBOSE) std::cout << "c \tVERBOSE\n";    // generate proof
+        std::cout << "c Runnning the solver with the following options:" << std::endl;
+        if (COUNT) std::cout << "c \tCOUNT" << std::endl;
+        if (VERBOSE) std::cout << "c \tVERBOSE" << std::endl;    // generate proof
     }
 
     // create a new solver instance
@@ -306,20 +323,20 @@ int main(int argc, char* argv[]) {
     ep->max_var = numVariables;
 
     // run solver
-    if (VERBOSE) std::cout << "c start solving\nc\n";
+    if (VERBOSE) std::cout << "c start solving\nc" << std::endl;
     int res = solver->solve();
 
     if (VERBOSE) {
-        std::cout << "c all models: " + to_string(ep->all_models) + "\n";
+        std::cout << "c all models: " + to_string(ep->all_models) << std::endl;
 
         std::cout << res;
-        std::cout << "\n";
+        std::cout << "" << std::endl;
     }
 
     if (COUNT) {
-        std::cout << "NUMBER SATISFYING ASSIGNMENTS\n";
+        std::cout << "NUMBER SATISFYING ASSIGNMENTS" << std::endl;
         std::cout << ep->all_models.size();
-        std::cout << "\n";
+        std::cout << "" << std::endl;
     }
 
     // write negated models to file
@@ -328,12 +345,12 @@ int main(int argc, char* argv[]) {
     if (file.is_open()) {
         int i = 1;
         for (auto model : ep->all_models) {
-            file << "i " << i << " " << to_string(model, true) << " 0\n";
+            file << "i " << i << " " << to_string(model, true) << " 0" << std::endl;
             i++;
         }
         file.close();
     } else {
-        std::cerr << "Unable to open " << TERMINAL_OUT << ".\n";
+        std::cerr << "Unable to open " << TERMINAL_OUT << "." << std::endl;
     }
 
     // disconnect EnumProp
