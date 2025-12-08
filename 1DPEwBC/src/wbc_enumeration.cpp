@@ -196,21 +196,36 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         int cb_decide () override {
             if (VERBOSE) std::cout << "c cb_decide:" << std::endl;
             if (save_decision) {
+                if (std::find(values.begin(), values.end(), -saved_decision) != values.end()) {
+                    false_backtrack = true;
+                    if (VERBOSE) std::cout << "c found saved decision: " + std::to_string(saved_decision) << std::endl;
+                    save_decision = false;
+                    int lit = saved_decision;
+                    saved_decision = 0;
+                    if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
+                } else {
                 // check if its already assigned
-                if (VERBOSE) std::cout << "c found saved decision: " + std::to_string(saved_decision) << std::endl;
-                save_decision = false;
-                int lit = saved_decision;
-                saved_decision = 0;
-                if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
-                return lit;
+                    if (VERBOSE) std::cout << "c found saved decision: " + std::to_string(saved_decision) << std::endl;
+                    save_decision = false;
+                    int lit = saved_decision;
+                    saved_decision = 0;
+                    if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
+                    return lit;
+                }
             }
 
             if (false_backtrack) {
                 int index = values.size() - 1;
                 while (true) {
+                    if (index < 0) {
+                        if (VERBOSE) std::cout << "c all variables assigned" << std::endl;
+                        solver->terminate();
+                        return 0;
+                    }
                     if (is_ds[index] && values[index] > 0) break;
                     index--;
                 }
+
                 if (VERBOSE) std::cout << "c backtracking to: " + std::to_string(dls[index] - 1) + " to avoid duplication" << std::endl;
                 solver->force_backtrack(dls[index] - 1);
                 false_backtrack = false;
@@ -295,6 +310,7 @@ int main(int argc, char* argv[]) {
     solver->set("restart", false);
     solver->set("inprocessing", false);
     solver->set("rephase", false);
+    solver->set("log", true);
 
 
     // create a new EnumProp instance
