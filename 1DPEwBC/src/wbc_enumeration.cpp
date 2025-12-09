@@ -48,30 +48,18 @@ bool sat(tcnf cnf, tclause model) {
 }
 
 
-int get_next_decision(const std::vector<int>& v) {
-    std::unordered_set<int> s;
-    s.reserve(v.size() * 2);     // Performance-Boost?
-
-    for (int x : v)
-        s.insert(std::abs(x));
-
-    int candidate = 1;
-    while (s.count(candidate))
-        ++candidate;
-    return candidate;
-}
-
-
-
 class EnumProp : public CaDiCaL::ExternalPropagator {
 
     public:
 
         CaDiCaL::Solver *solver;
 
-        std::vector<int> values;
+        // stack of assigned variables
+        std::vector<int> stack;
+
         std::vector<int> dls;
         std::vector<bool> is_ds;
+        std::vector<int> values;
 
         // consecutive negative decisions count
         int cndc = 0;
@@ -85,54 +73,66 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         bool false_backtrack = false;
         bool save_decision = false;
         int saved_decision = 0;
+        int last_decision = 0;
 
         tcnf all_models;
 
         void push(int lit, int dl, bool is_decision) {
-            values.push_back(lit);
-            dls.push_back(dl);
-            is_ds.push_back(is_decision);
+            int var = std::abs(lit);
+
+            stack.push_back(var);
+
+            values[var] = (lit > 0) ? 1 : -1;
+            dls[var] = dl;
+            is_ds[var] = is_decision;
         };
 
         std::tuple<int, int, bool> pop() {
-            int val = values.back();
-            int level = dls.back();
-            bool is_decision = is_ds.back();
+            int var = stack.back();
+            stack.pop_back();
 
-            values.pop_back();
-            dls.pop_back();
-            is_ds.pop_back();
+            int val = values[var];
+            int level = dls[var];
+            bool is_decision = is_ds[var];
+
+            values[var] = 0;
+            dls[var] = -1;
+            is_ds[var] = false;
 
             return {val, level, is_decision};
         }
 
+        int find_highest_dl_with_positive_decision() {
+            int highest_dl = dl;
+            for (int i = stack.size() - 1; i >= 0; i--) {
+                if (is_ds[i] && values[i] > 0) {
+                    highest_dl = dls[i];
+                    break;
+                }
+            }
+            if (VERBOSE) std::cout << "c highest dl with positive decision: " + std::to_string(highest_dl) << std::endl;
+            return highest_dl;
+        };
+
         bool cb_check_found_model (const tclause &model) override {
             if (VERBOSE) std::cout << "c cb_check_found_model:" << std::endl;
-            if (finished) return false;
 
             if (!false_backtrack) {
                 tclause new_model;
-                // build new_model step by step
                 for (int lit : model) {
                     new_model.push_back(lit);
                 }
 
                 all_models.push_back(new_model);
 
-                if (VERBOSE) {
-                    std::cout << "c " + to_string(model) + "\nc" << std::endl;
-                }
+                if (VERBOSE) std::cout << "c " + to_string(model) + "\nc" << std::endl;
             }
 
             // finding highest decision level with positive decision
-            int index = values.size() - 1;
-            while (true) {
-                if (is_ds[index] && values[index] > 0) break;
-                index--;
-            }
+            int highest_pos_dl = find_highest_dl_with_positive_decision();
 
-            // backtrack to last decision level
-            solver->force_backtrack(dls[index] - 1);
+            // backtrack to decisionlevel before that, so we can flip the decision
+            solver->force_backtrack(highest_pos_dl - 1);
             backtrack = true;
 
             // always return false -> solver can only terminate with UNSAT: no more solutions
@@ -147,17 +147,18 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         // this function is called when observed variables are assigned (either by BCP, Decide, or Learning a unit clause). It has a single read-only argument containing literals that became satisfied by the new assignment. In case the notification reports more than one literal, it is guaranteed that all of the reported literals were assigned on the same (current) decision level.
         void notify_assignment(const std::vector<int> &list) override {
             if (VERBOSE) std::cout << "c notify_assignment:" << std::endl;
-            if (finished) return;
+
             for (int lit : list) {
-                if (dls.back() < dl && dl > 0) {
+                if (lit == last_decision) {
                     push(lit, dl, true);
                     if (VERBOSE) std::cout << "c decided: " + std::to_string(lit) + "@" + std::to_string(dl) << std::endl;
-                } else { // this happens if the literal is already on the stack (its a decision)
+                } else {
                     push(lit, dl, false);
                     if (VERBOSE) std::cout << "c forced: " + std::to_string(lit) + "@" + std::to_string(dl) << std::endl;
                 };
             }
-            if (VERBOSE) std::cout << to_string(values, dls, is_ds);
+
+            if (VERBOSE) std::cout << to_string(stack, values, dls, is_ds);
         };
 
         // the call of this function indicates to the user that on the trail a new decision level has started. The function does not report the actual decision that started this new level or the current decision level — it only reports that a decision happened and thus, the decision level is increased.
@@ -171,70 +172,71 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         void notify_backtrack (size_t new_level) override {
             if (VERBOSE) std::cout << "c notify_backtrack:" << std::endl;
             if (dc == cndc) {
-                if (dl == -1) return;
+                // all decisions so far were negative (nothing else to decide there)
+                // if (dl == -1) return;
                 std::cout << "c\nc terminating search. " + std::to_string(cndc) + " decision(s), all negative" << std::endl;
                 solver->terminate();
                 finished = true;
                 return;
             }
 
+            false_backtrack = (int)new_level == dl - 1 && last_decision < 0;
             if (VERBOSE) std::cout << "c to level " + std::to_string(new_level) << std::endl;
-            false_backtrack = dl != dls.back();
-            if (VERBOSE && false_backtrack) std::cout << "c false_backtrack = true" << std::endl;
-            while (dls.back() > (int)new_level) {
+            while (dls[stack.back()] > (int)new_level) {
+                int var = stack.back();
                 auto [val, level, is_decision] = pop();
                 if (is_decision) {
+                    false_backtrack = val < 0;
+                    if (VERBOSE && false_backtrack) std::cout << "c false_backtrack" << std::endl;
                     dc--;
                 }
-                if (VERBOSE) std::cout << "c removed " + std::to_string(val) + "@" + std::to_string(level) << std::endl;
+                if (VERBOSE) std::cout << "c removed " + std::to_string(val * var) + "@" + std::to_string(level) << std::endl;
             }
             dl = new_level;
-            if (VERBOSE) std::cout << to_string(values, dls, is_ds);
+            if (VERBOSE) std::cout << to_string(stack, values, dls, is_ds);
         };
 
         // called before the solver makes a decision. Return your decision or 0 (solver makes one).
         int cb_decide () override {
             if (VERBOSE) std::cout << "c cb_decide:" << std::endl;
+
             if (save_decision) {
-                if (std::find(values.begin(), values.end(), -saved_decision) != values.end()) {
+                if (VERBOSE) std::cout << "c found saved decision: " + std::to_string(saved_decision) << std::endl;
+                save_decision = false;
+                int lit = saved_decision;
+                saved_decision = 0;
+
+                if (values[std::abs(lit)] == -lit) {
                     false_backtrack = true;
-                    if (VERBOSE) std::cout << "c found saved decision: " + std::to_string(saved_decision) << std::endl;
-                    save_decision = false;
-                    int lit = saved_decision;
-                    saved_decision = 0;
-                    if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
+                    if (VERBOSE) std::cout << "c saved decision already falsified, backtracking to avoid duplication" << std::endl;
                 } else {
-                // check if its already assigned
-                    if (VERBOSE) std::cout << "c found saved decision: " + std::to_string(saved_decision) << std::endl;
-                    save_decision = false;
-                    int lit = saved_decision;
-                    saved_decision = 0;
                     if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
                     return lit;
                 }
             }
 
             if (false_backtrack) {
-                int index = values.size() - 1;
-                while (true) {
-                    if (index < 0) {
-                        if (VERBOSE) std::cout << "c all variables assigned" << std::endl;
-                        solver->terminate();
-                        return 0;
-                    }
-                    if (is_ds[index] && values[index] > 0) break;
-                    index--;
+                int highest_pos_dl = find_highest_dl_with_positive_decision();
+
+                if (highest_pos_dl < 0) {
+                    if (VERBOSE) std::cout << "c all variables assigned" << std::endl;
+                    solver->terminate();
+                    return 0;
                 }
 
-                if (VERBOSE) std::cout << "c backtracking to: " + std::to_string(dls[index] - 1) + " to avoid duplication" << std::endl;
-                solver->force_backtrack(dls[index] - 1);
+                if (VERBOSE) std::cout << "c backtracking to: " + std::to_string(highest_pos_dl - 1) + " to avoid duplication" << std::endl;
+                solver->force_backtrack(highest_pos_dl - 1);
                 false_backtrack = false;
                 backtrack = true;
                 save_decision = true;
                 if (VERBOSE) std::cout << "end false_backtrack" << std::endl;
             }
 
-            int var = get_next_decision(values);
+            // find next decision variable
+            int var = 1;
+            while (var <= max_var && values[var] != 0) {
+                var++;
+            }
 
             if (var > max_var) {
                 if (VERBOSE) std::cout << "c all variables assigned" << std::endl;
@@ -257,6 +259,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
                 saved_decision = lit;
             }
 
+            last_decision = lit;
             if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
             return lit;
         };
@@ -327,13 +330,20 @@ int main(int argc, char* argv[]) {
 
     solver->read_dimacs(argv[argc - 1], numVariables);
 
-    // push one 0 so index == var
-    ep->push(0, -1, false);
+    // add dummy at index 0 so indices match variable numbers
+    ep->values.push_back(0);
+    ep->dls.push_back(-1);
+    ep->is_ds.push_back(false);
 
     tclause vars;
     // mark all variables as relevant for observing
     for (int var = 1; var <= numVariables; var++) {
         solver->add_observed_var(var);
+
+        // initialize all values, dls and is_ds
+        ep->values.push_back(0);
+        ep->dls.push_back(-1);
+        ep->is_ds.push_back(false);
     }
 
     ep->max_var = numVariables;

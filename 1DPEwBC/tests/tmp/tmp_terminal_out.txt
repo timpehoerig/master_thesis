@@ -1,7 +1,5 @@
 c opening file to read './tmp/tmp_fuzzed.cnf'
-c found 'p cnf 12 68' header
-c parsed 68 clauses in 0.00 seconds process time
+c found 'p cnf 8 30' header
+c parsed 30 clauses in 0.00 seconds process time
 NUMBER SATISFYING ASSIGNMENTS
-17
-c
-c terminating search. 4 decision(s), all negative
+6
