@@ -57,23 +57,40 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         // stack of assigned variables
         std::vector<int> stack;
 
+        // arrays where index == var
         std::vector<int> dls;
         std::vector<bool> is_ds;
         std::vector<int> values;
 
-        // consecutive negative decisions count
-        int cndc = 0;
         // decision count
         int dc = 0;
+        // consecutive negative decisions count
+        int cndc = 0;
+
         // decision level
         int dl = 0;
+
+        // biggest variable (inclusive)
         int max_var;
+
+        // flag if forced_backtrack was called, used for negative decisions
         bool backtrack = false;
-        bool finished = false;
+        // flag if solver is doing stuff that is redundant and needs to be undone (with a backtrack)
         bool false_backtrack = false;
+
+        // if we backtrack in cb_decide, the solver ignores the decision and we need to save it
         bool save_decision = false;
+        // the saved decision
         int saved_decision = 0;
+
+        // last decision (to decide wether an assignment is a decision or forced)
         int last_decision = 0;
+
+        // decision before backtrack (to detect duplication)
+        int decision_b4_backtracked = 0;
+
+        // counting decisions on levels
+        std::vector<int> decision_counts_per_level;
 
         tcnf all_models;
 
@@ -103,10 +120,11 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         }
 
         int find_highest_dl_with_positive_decision() {
-            int highest_dl = dl;
+            int highest_dl = -1;
             for (int i = stack.size() - 1; i >= 0; i--) {
-                if (is_ds[i] && values[i] > 0) {
-                    highest_dl = dls[i];
+                int var = stack[i];
+                if (is_ds[var] && values[var] > 0) {
+                    highest_dl = dls[var];
                     break;
                 }
             }
@@ -126,7 +144,12 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
                 all_models.push_back(new_model);
 
                 if (VERBOSE) std::cout << "c " + to_string(model) + "\nc" << std::endl;
+
+            } else {
+                if (VERBOSE) std::cout << "c ignoring model due to false backtrack\nc" << std::endl;
             }
+
+            false_backtrack = false;
 
             // finding highest decision level with positive decision
             int highest_pos_dl = find_highest_dl_with_positive_decision();
@@ -152,10 +175,20 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
                 if (lit == last_decision) {
                     push(lit, dl, true);
                     if (VERBOSE) std::cout << "c decided: " + std::to_string(lit) + "@" + std::to_string(dl) << std::endl;
+                    if (decision_counts_per_level[dl - 1] > 2) {
+                        false_backtrack = true;
+                        if (VERBOSE) std::cout << "c decision was already made twice on that level, false_backtrack = true" << std::endl;
+                    }
                 } else {
                     push(lit, dl, false);
                     if (VERBOSE) std::cout << "c forced: " + std::to_string(lit) + "@" + std::to_string(dl) << std::endl;
-                };
+
+                    if ((decision_b4_backtracked < 0 && abs(lit) == abs(decision_b4_backtracked))
+                        || (decision_b4_backtracked > 0 && lit == decision_b4_backtracked)) {
+                        false_backtrack = true;
+                        if (VERBOSE) std::cout << "c forced assignment contradicts last decision before backtrack, false_backtrack = true" << std::endl;
+                    }
+                }
             }
 
             if (VERBOSE) std::cout << to_string(stack, values, dls, is_ds);
@@ -165,6 +198,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         void notify_new_decision_level () override {
             if (VERBOSE) std::cout << "c notify_new_decision_level:" << std::endl;
             dl++;
+            decision_counts_per_level.push_back(0);
             if (VERBOSE) std::cout << "c " + std::to_string(dl) << std::endl;
         };
 
@@ -176,23 +210,32 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
                 // if (dl == -1) return;
                 std::cout << "c\nc terminating search. " + std::to_string(cndc) + " decision(s), all negative" << std::endl;
                 solver->terminate();
-                finished = true;
                 return;
             }
 
-            false_backtrack = (int)new_level == dl - 1 && last_decision < 0;
             if (VERBOSE) std::cout << "c to level " + std::to_string(new_level) << std::endl;
-            while (dls[stack.back()] > (int)new_level) {
+
+            int pos_new_decsion_b4_backtracked = 0;
+
+            while (stack.size() > 0 && dls[stack.back()] > (int)new_level) {
                 int var = stack.back();
                 auto [val, level, is_decision] = pop();
                 if (is_decision) {
-                    false_backtrack = val < 0;
-                    if (VERBOSE && false_backtrack) std::cout << "c false_backtrack" << std::endl;
                     dc--;
+                    last_decision = 0;
+                    pos_new_decsion_b4_backtracked = val * var;
                 }
+
                 if (VERBOSE) std::cout << "c removed " + std::to_string(val * var) + "@" + std::to_string(level) << std::endl;
             }
+
+            if (!false_backtrack && pos_new_decsion_b4_backtracked != 0) {
+                decision_b4_backtracked = pos_new_decsion_b4_backtracked;
+            }
+
             dl = new_level;
+
+
             if (VERBOSE) std::cout << to_string(stack, values, dls, is_ds);
         };
 
@@ -219,7 +262,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
                 int highest_pos_dl = find_highest_dl_with_positive_decision();
 
                 if (highest_pos_dl < 0) {
-                    if (VERBOSE) std::cout << "c all variables assigned" << std::endl;
+                    if (VERBOSE) std::cout << "c no positive decisions to flip - finished" << std::endl;
                     solver->terminate();
                     return 0;
                 }
@@ -247,12 +290,20 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
             if (backtrack) {
                 backtrack = false;
                 lit = -var;
+                while ((int)decision_counts_per_level.size() > dl + 1) {
+                    decision_counts_per_level.pop_back();
+                }
                 if (dc == cndc) cndc++;
             } else {
                 lit = var;
             }
 
             dc++;
+            if (decision_counts_per_level[dl] == 1 && lit > 0) {
+                decision_counts_per_level[dl] = 0;
+            }
+            decision_counts_per_level[dl]++;
+            if (VERBOSE) std::cout << "c decision count " << std::to_string(decision_counts_per_level[dl]) << "@" << std::to_string(dl + 1) << std::endl;
 
             if (save_decision) {
                 if (VERBOSE) std::cout << "c saved decision: " + std::to_string(lit) << std::endl;
@@ -260,6 +311,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
             }
 
             last_decision = lit;
+            decision_b4_backtracked = lit;
             if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
             return lit;
         };
@@ -334,6 +386,7 @@ int main(int argc, char* argv[]) {
     ep->values.push_back(0);
     ep->dls.push_back(-1);
     ep->is_ds.push_back(false);
+    ep->decision_counts_per_level.push_back(0);
 
     tclause vars;
     // mark all variables as relevant for observing
