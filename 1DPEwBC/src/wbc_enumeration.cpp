@@ -91,6 +91,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
 
         // counting decisions on levels
         std::vector<int> decision_counts_per_level;
+        int dcplnc = 0;
 
         tcnf all_models;
 
@@ -198,20 +199,21 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         void notify_new_decision_level () override {
             if (VERBOSE) std::cout << "c notify_new_decision_level:" << std::endl;
             dl++;
-            decision_counts_per_level.push_back(0);
             if (VERBOSE) std::cout << "c " + std::to_string(dl) << std::endl;
+            decision_counts_per_level.push_back(0);
         };
 
         // this function indicates that the solver backtracked to a lower decision level. Its single argument reports the new decision level. All assignments that were made above this target decision level must be considered as unassigned.
         void notify_backtrack (size_t new_level) override {
             if (VERBOSE) std::cout << "c notify_backtrack:" << std::endl;
-            if (dc == cndc) {
+            std::cout << "dcplnc=" << dcplnc << " dcpl size=" << decision_counts_per_level.size() << std::endl;
+            // if (dcplnc == (int)decision_counts_per_level.size()) { // dc == cndc
                 // all decisions so far were negative (nothing else to decide there)
                 // if (dl == -1) return;
-                std::cout << "c\nc terminating search. " + std::to_string(cndc) + " decision(s), all negative" << std::endl;
-                solver->terminate();
-                return;
-            }
+            //     std::cout << "c\nc terminating search. " + std::to_string(cndc) + " decision(s), all negative" << std::endl;
+            //     solver->terminate();
+            //     return;
+            // }
 
             if (VERBOSE) std::cout << "c to level " + std::to_string(new_level) << std::endl;
 
@@ -303,7 +305,12 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
                 decision_counts_per_level[dl] = 0;
             }
             decision_counts_per_level[dl]++;
-            if (VERBOSE) std::cout << "c decision count " << std::to_string(decision_counts_per_level[dl]) << "@" << std::to_string(dl + 1) << std::endl;
+
+            if (decision_counts_per_level[dl] == 2 && dcplnc == dl) {
+                dcplnc++;
+            }
+
+            if (VERBOSE) std::cout << "c decision counts: " << to_string(decision_counts_per_level) << std::endl;
 
             if (save_decision) {
                 if (VERBOSE) std::cout << "c saved decision: " + std::to_string(lit) << std::endl;
