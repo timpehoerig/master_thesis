@@ -1,4 +1,16 @@
-# Blocked Clause Enumeration with Projection
+# Enumeration with Projection
+
+## IMPORTANT
+
+This is not a finished Version.
+
+To make this work following changes must be done in cadical:
+
+In cadical/src/external_propagate.cpp:
+
+1. In 'ask_decision' add at the end 'else return ask_decision()'
+
+2. In 'ask_decision' add 'forced_backt_allowed = true' before 'int elit = external->propagator->cb_decide ();' and 'forced_backt_allowed = false' after.
 
 ## USAGE:
 
@@ -9,26 +21,3 @@ Run `make` on this level to compile all (wbcp_enum and checker), run `make clean
 Move to `src`.
 
 Run `./wbcp_enum --help`.
-
-## USAGE: checker:
-
-Move to `checker`.
-
-Run `./checker --help` to see how to use `checker` directly or
-
-Run `./run_checker.sh --help` to run both `wbcp_enum` and directly `checker` on it's output.
-
-## tests:
-
-Move to `checker`.
-
-Run `./test_one.sh` to run wbcp_enum in counting mode and comparing it to dualiza's count. Outputs `eq` if equal else `neq`.
-
-Run `./test_many.sh` to run `test_one.sh` until one run returns `neq`.
-
-NOTE: `neq` can also happen if the cnf is too large and wbcp_enum fails due to too much memory consumption.
-
-## src
-## checker
-## tests
-## utils
