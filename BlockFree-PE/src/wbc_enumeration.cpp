@@ -1,4 +1,7 @@
 #include "../../cadical/src/cadical.hpp"
+#include "../../cadical/src/tracer.hpp"
+#include "../../cadical/src/internal.hpp"
+#include "../../cadical/src/external.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -48,11 +51,42 @@ bool sat(tcnf cnf, tclause model) {
 }
 
 
-class EnumProp : public CaDiCaL::ExternalPropagator {
+int check_literal(int v, int b, std::vector<int> T, CaDiCaL::Internal *internal) {
+    if (VERBOSE) std::cout << "c checking literal " + std::to_string(v) << std::endl;
+    int internal_l = internal->external->e2i[v];
+    if (VERBOSE) std::cout << " (internal: " + std::to_string(internal_l) + ")" << std::endl;
+    for (auto watch : internal->watches(internal_l)) {
+        std::cout << "# b:" << std::to_string(b) << " c[0]: " << std::to_string(watch.clause->literals[0]) << " c[1]: " << std::to_string(watch.clause->literals[1]) << std::endl;
+    }
+    return 0;
+}
+
+
+int implicant_shrinking(std::vector<int> T, std::vector<bool> is_ds, std::vector<int> dls, CaDiCaL::Internal *internal) {
+    std::vector<int> T_copy(T);
+    if (VERBOSE) std::cout << "c starting implicant shrinking with T: " + to_string(T_copy) << std::endl;
+    int b = 0;
+    while (T_copy.size()) {
+        int v = T_copy.back();
+        T_copy.pop_back();
+        if (!is_ds[v]) {
+            b = std::max(b, dls[v]);
+        } else if (dls[v] > b) {
+            b = check_literal(v, b, T_copy, internal);
+        } else if (dls[v] == 0 || dls[v] == b) {
+            break;
+        }
+    }
+    return b;
+}
+
+
+class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTracer {
 
     public:
 
         CaDiCaL::Solver *solver;
+        CaDiCaL::Internal *internal;
 
         // stack of assigned variables
         std::vector<int> stack;
@@ -134,9 +168,18 @@ class EnumProp : public CaDiCaL::ExternalPropagator {
         };
 
         bool cb_check_found_model (const tclause &model) override {
+            // acces to watches (via literals)
+            // external != internal variable names
+            // internal->external->e2i[my lit] == solver lit
+            // internal->watches(solver lit);
+            // check if always dl == solver dl
+            // internal->var(solver lit).level == solver dl;
+            // ----------------
+
             if (VERBOSE) std::cout << "c cb_check_found_model:" << std::endl;
 
             if (!false_backtrack) {
+                implicant_shrinking(stack, is_ds, dls, internal);
                 tclause new_model;
                 for (int lit : model) {
                     new_model.push_back(lit);
@@ -383,6 +426,12 @@ int main(int argc, char* argv[]) {
 
     // connect EnumProp to solver instance
     solver->connect_external_propagator(ep);
+
+    // connect tracer and delete proof (so maybe no overhead) only need pointer to watches
+    solver->connect_proof_tracer(ep, false);
+    //solver->disconnect_proof_tracer(ep);
+    //delete ep->internal->proof;
+    //ep->internal->proof = nullptr;
 
     // extract num of variables from dimacs file
     int numVariables = 0;
