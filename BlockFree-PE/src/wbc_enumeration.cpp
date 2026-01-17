@@ -51,29 +51,47 @@ bool sat(tcnf cnf, tclause model) {
 }
 
 
-int check_literal(int v, int b, std::vector<int> T, CaDiCaL::Internal *internal) {
-    if (VERBOSE) std::cout << "c checking literal " + std::to_string(v) << std::endl;
-    int internal_l = internal->external->e2i[v];
-    if (VERBOSE) std::cout << " (internal: " + std::to_string(internal_l) + ")" << std::endl;
-    for (auto watch : internal->watches(internal_l)) {
-        std::cout << "# b:" << std::to_string(b) << " c[0]: " << std::to_string(watch.clause->literals[0]) << " c[1]: " << std::to_string(watch.clause->literals[1]) << std::endl;
+int check_literal(int v, int b, std::vector<int> T, std::vector<int> dls, std::vector<int> values, CaDiCaL::Internal *internal) {
+    int internal_v = internal->external->e2i[v];
+    if (VERBOSE) std::cout << "c checking literal: " + std::to_string(v) << " internal: " << std::to_string(internal_v) << std::endl;
+    if (VERBOSE) std::cout << "c watched clauses:" << std::endl;
+    for (auto watch : internal->watches(internal_v)) {
+        if (VERBOSE) {
+            std::cout << "c ";
+            for (int i = 0; i < watch.size; i++) {
+                std::cout << std::to_string(watch.clause->literals[i]) << " ";
+            }
+        }
+        int il1 = watch.clause->literals[0]; // should always be internal_l but isn't
+        int il2 = watch.clause->literals[1]; // second watched literal
+        // other is now the other watched literal
+        int other = il1;
+        if (std::abs(il1) == internal_v) other = il2; 
+        if (VERBOSE) std::cout << "also by: " << std::to_string(other) << std::endl;
+        if (!(std::count(T.begin(), T.end(), std::abs(other)) > 0 && values[other] * other > 0)) {
+            if (VERBOSE) std::cout << "c b = max(" << std::to_string(b) << "," << std::to_string(dls[v]) << ")" << std::endl;
+            b = std::max(b, dls[v]);
+        }
     }
-    return 0;
+    if (VERBOSE) std::cout << "c returning b = " << std::to_string(b) << std::endl;
+    return b;
 }
 
 
-int implicant_shrinking(std::vector<int> T, std::vector<bool> is_ds, std::vector<int> dls, CaDiCaL::Internal *internal) {
+int implicant_shrinking(std::vector<int> T, std::vector<bool> is_ds, std::vector<int> dls, std::vector<int> values, CaDiCaL::Internal *internal) {
     std::vector<int> T_copy(T);
-    if (VERBOSE) std::cout << "c starting implicant shrinking with T: " + to_string(T_copy) << std::endl;
+    if (VERBOSE) std::cout << "c starting implicant shrinking" << std::endl;
     int b = 0;
     while (T_copy.size()) {
         int v = T_copy.back();
         T_copy.pop_back();
         if (!is_ds[v]) {
             b = std::max(b, dls[v]);
+            if (VERBOSE) std::cout << "c " << std::to_string(v * values[v]) << " is not a decision -> b = max(" << std::to_string(b) << "," << std::to_string(dls[v]) << ")" << std::endl;
         } else if (dls[v] > b) {
-            b = check_literal(v, b, T_copy, internal);
+            b = check_literal(v, b, T_copy, dls, values, internal);
         } else if (dls[v] == 0 || dls[v] == b) {
+            if (VERBOSE) std::cout << "c dl of " << std::to_string(v * values[v]) << " is " << std::to_string(dls[v]) << "(0 or b)" << std::endl;
             break;
         }
     }
@@ -168,26 +186,22 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
         };
 
         bool cb_check_found_model (const tclause &model) override {
-            // acces to watches (via literals)
-            // external != internal variable names
-            // internal->external->e2i[my lit] == solver lit
-            // internal->watches(solver lit);
-            // check if always dl == solver dl
-            // internal->var(solver lit).level == solver dl;
-            // ----------------
 
             if (VERBOSE) std::cout << "c cb_check_found_model:" << std::endl;
 
+            int b;
+            bool found_model = false;
             if (!false_backtrack) {
-                implicant_shrinking(stack, is_ds, dls, internal);
+                b = implicant_shrinking(stack, is_ds, dls, values, internal);
                 tclause new_model;
                 for (int lit : model) {
-                    new_model.push_back(lit);
+                    if (dls[std::abs(lit)] <= b) new_model.push_back(lit);
                 }
 
                 all_models.push_back(new_model);
 
-                if (VERBOSE) std::cout << "c " + to_string(model) + "\nc" << std::endl;
+                found_model = true;
+                if (VERBOSE) std::cout << "c " + to_string(new_model) + "\nc" << std::endl;
 
             } else {
                 if (VERBOSE) std::cout << "c ignoring model due to false backtrack\nc" << std::endl;
@@ -195,11 +209,16 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
 
             false_backtrack = false;
 
-            // finding highest decision level with positive decision
-            int highest_pos_dl = find_highest_dl_with_positive_decision();
+            if (found_model && b < dl) {
+                found_model = false;
+                solver->force_backtrack(b - 1);
+            } else {
+                // finding highest decision level with positive decision
+                int highest_pos_dl = find_highest_dl_with_positive_decision();
 
-            // backtrack to decisionlevel before that, so we can flip the decision
-            solver->force_backtrack(highest_pos_dl - 1);
+                // backtrack to decisionlevel before that, so we can flip the decision
+                solver->force_backtrack(highest_pos_dl - 1);
+            }
             backtrack = true;
 
             // always return false -> solver can only terminate with UNSAT: no more solutions
@@ -368,6 +387,10 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
 
         int cb_propagate () override { return 0; };
         int cb_add_reason_clause_lit (int propagated_lit) override { return 0; };
+
+        void connect_internal (CaDiCaL::Internal *internal_p) {
+            internal = internal_p;
+        };
 };
 
 
@@ -432,6 +455,7 @@ int main(int argc, char* argv[]) {
     //solver->disconnect_proof_tracer(ep);
     //delete ep->internal->proof;
     //ep->internal->proof = nullptr;
+    std::cout << "pointer: " << ep->internal << std::endl;
 
     // extract num of variables from dimacs file
     int numVariables = 0;
