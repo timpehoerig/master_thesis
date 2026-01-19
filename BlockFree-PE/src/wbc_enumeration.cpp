@@ -31,6 +31,7 @@ tcnf cnf;
 
 // paths
 const char* TERMINAL_OUT = "tmp_wbcp_terminal_out.txt";
+const char* PROOF_OUT = "tmp_wbcp_proof.txt";
 
 
 // check sat_clause without index
@@ -435,7 +436,6 @@ int main(int argc, char* argv[]) {
     // create a new EnumProp instance
     EnumProp *ep = new EnumProp;
 
-    
     ep->solver = solver;
 
     // connect EnumProp to solver instance
@@ -446,7 +446,6 @@ int main(int argc, char* argv[]) {
     solver->disconnect_proof_tracer(ep);
     delete ep->internal->proof;
     ep->internal->proof = nullptr;
-    std::cout << "pointer: " << ep->internal << std::endl;
 
     // extract num of variables from dimacs file
     int numVariables = 0;
