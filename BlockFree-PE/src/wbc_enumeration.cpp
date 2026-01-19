@@ -23,6 +23,7 @@ using tcnf = std::vector<tclause>;
 // global meta variables
 bool COUNT = false;
 bool VERBOSE = false;
+bool SHRINK = false;
 bool HELP = false;
 
 // cnf must be global so EnumProp can use it
@@ -143,7 +144,6 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
 
         // counting decisions on levels
         std::vector<int> decision_counts_per_level;
-        int dcplnc = 0;
 
         tcnf all_models;
 
@@ -189,10 +189,10 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
 
             if (VERBOSE) std::cout << "c cb_check_found_model:" << std::endl;
 
-            int b;
+            int b = dl;
             bool found_model = false;
             if (!false_backtrack) {
-                b = implicant_shrinking(stack, is_ds, dls, values, internal);
+                if (SHRINK) b = implicant_shrinking(stack, is_ds, dls, values, internal);
                 tclause new_model;
                 for (int lit : model) {
                     if (dls[std::abs(lit)] <= b) new_model.push_back(lit);
@@ -268,14 +268,6 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
         // this function indicates that the solver backtracked to a lower decision level. Its single argument reports the new decision level. All assignments that were made above this target decision level must be considered as unassigned.
         void notify_backtrack (size_t new_level) override {
             if (VERBOSE) std::cout << "c notify_backtrack:" << std::endl;
-            std::cout << "dcplnc=" << dcplnc << " dcpl size=" << decision_counts_per_level.size() << std::endl;
-            // if (dcplnc == (int)decision_counts_per_level.size()) { // dc == cndc
-                // all decisions so far were negative (nothing else to decide there)
-                // if (dl == -1) return;
-            //     std::cout << "c\nc terminating search. " + std::to_string(cndc) + " decision(s), all negative" << std::endl;
-            //     solver->terminate();
-            //     return;
-            // }
 
             if (VERBOSE) std::cout << "c to level " + std::to_string(new_level) << std::endl;
 
@@ -368,10 +360,6 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
             }
             decision_counts_per_level[dl]++;
 
-            if (decision_counts_per_level[dl] == 2 && dcplnc == dl) {
-                dcplnc++;
-            }
-
             if (VERBOSE) std::cout << "c decision counts: " << to_string(decision_counts_per_level) << std::endl;
 
             if (save_decision) {
@@ -394,17 +382,18 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
 };
 
 
-void arg_parser(int argc, char* argv[], bool& count, bool& verbose, bool& help) {
+void arg_parser(int argc, char* argv[], bool& count, bool& verbose, bool& shrink, bool& help) {
     std::map<std::string, std::string> parsedArgs = parseArgs(argc, argv);
     count = parsedArgs.count("count") || parsedArgs.count("c");
     verbose = parsedArgs.count("verbose") || parsedArgs.count("v");
+    shrink = parsedArgs.count("shrink") || parsedArgs.count("s");
     help = parsedArgs.count("help") || parsedArgs.count("h");
 }
 
 
 int main(int argc, char* argv[]) {
     // arg parser
-    arg_parser(argc, argv, COUNT, VERBOSE, HELP);
+    arg_parser(argc, argv, COUNT, VERBOSE, SHRINK, HELP);
 
     if (HELP) {
         std::string msg =
@@ -418,7 +407,8 @@ int main(int argc, char* argv[]) {
             "\n"
             "\t-h --help \t Show this menu\n"
             "\t-c --count \t Returns number of models\n"
-            "\t-v --verbose \t Returns the log and all models\n";
+            "\t-v --verbose \t Returns the log and all models\n"
+            "\t-s --shrink \t Performs implicant shrinking on found models\n";
         std::cout << msg;
         return 0;
     }
@@ -426,7 +416,8 @@ int main(int argc, char* argv[]) {
     if (VERBOSE) {
         std::cout << "c Runnning the solver with the following options:" << std::endl;
         if (COUNT) std::cout << "c \tCOUNT" << std::endl;
-        if (VERBOSE) std::cout << "c \tVERBOSE" << std::endl;    // generate proof
+        if (VERBOSE) std::cout << "c \tVERBOSE" << std::endl;
+        if (SHRINK) std::cout << "c \tSHRINK" << std::endl;
     }
 
     // create a new solver instance
@@ -452,9 +443,9 @@ int main(int argc, char* argv[]) {
 
     // connect tracer and delete proof (so maybe no overhead) only need pointer to watches
     solver->connect_proof_tracer(ep, false);
-    //solver->disconnect_proof_tracer(ep);
-    //delete ep->internal->proof;
-    //ep->internal->proof = nullptr;
+    solver->disconnect_proof_tracer(ep);
+    delete ep->internal->proof;
+    ep->internal->proof = nullptr;
     std::cout << "pointer: " << ep->internal << std::endl;
 
     // extract num of variables from dimacs file
