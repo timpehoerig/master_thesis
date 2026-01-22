@@ -1,0 +1,808 @@
+c Runnning the solver with the following options:
+c 	VERBOSE
+c 	SHRINK
+c opening file to read '../interesting_cnfs/problems/tmp_fuzzed.cnf'
+c found 'p cnf 10 36' header
+c parsed 36 clauses in 0.00 seconds process time
+c start solving
+c
+c cb_decide:
+c decision counts: 1
+c returning decision: 1
+c notify_new_decision_level:
+c 1
+c notify_backtrack:
+c to level 0
+c lvl (-1) |
+c val ( 0) |
+c why ( f) |
+c notify_assignment:
+c forced: -1@0
+c lvl (-1) | 0   |
+c val ( 0) | -1  |
+c why ( f) | f   |
+c cb_decide:
+c decision counts: 1 0
+c returning decision: 2
+c notify_new_decision_level:
+c 1
+c notify_assignment:
+c decided: 2@1
+c lvl (-1) | 0   | 1  |
+c val ( 0) | -1  | 2  |
+c why ( f) | f   | d  |
+c cb_decide:
+c decision counts: 1 1 0
+c returning decision: 3
+c notify_new_decision_level:
+c 2
+c notify_assignment:
+c decided: 3@2
+c forced: -4@2
+c forced: -9@2
+c forced: -6@2
+c forced: 8@2
+c forced: 5@2
+c lvl (-1) | 0   | 1  | 2               |
+c val ( 0) | -1  | 2  | 3 -4 -9 -6 8 5  |
+c why ( f) | f   | d  | d f  f  f  f f  |
+c cb_decide:
+c decision counts: 1 1 1 0
+c returning decision: 7
+c notify_new_decision_level:
+c 3
+c notify_assignment:
+c decided: 7@3
+c lvl (-1) | 0   | 1  | 2               | 3  |
+c val ( 0) | -1  | 2  | 3 -4 -9 -6 8 5  | 7  |
+c why ( f) | f   | d  | d f  f  f  f f  | d  |
+c cb_decide:
+c decision counts: 1 1 1 1 0
+c returning decision: 10
+c notify_new_decision_level:
+c 4
+c notify_assignment:
+c decided: 10@4
+c lvl (-1) | 0   | 1  | 2               | 3  | 4   |
+c val ( 0) | -1  | 2  | 3 -4 -9 -6 8 5  | 7  | 10  |
+c why ( f) | f   | d  | d f  f  f  f f  | d  | d   |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: 10 internal: 10
+c watched clauses:
+c 10 -7 -4 8 -1 also by: -7 internal: -7
+c b = max(0,4)
+c 2 10 4 8 also by: 2 internal: 2
+c 10 -1 3 2 8 also by: -1 internal: -1
+c 10 9 1 -8 -4 also by: 9 internal: 9
+c b = max(4,4)
+c -5 10 -2 -9 also by: -5 internal: -5
+c b = max(4,4)
+c -5 10 3 -2 -7 also by: -5 internal: -5
+c b = max(4,4)
+c 2 10 1 also by: 2 internal: 2
+c returning b = 4
+c 5 is not a decision -> b = max(4,2)
+c 8 is not a decision -> b = max(4,2)
+c -6 is not a decision -> b = max(4,2)
+c -9 is not a decision -> b = max(4,2)
+c -4 is not a decision -> b = max(4,2)
+c -1 is not a decision -> b = max(4,0)
+c -1 2 3 -4 5 -6 7 8 -9 10
+c
+c highest dl with positive decision: 4
+c notify_backtrack:
+c to level 3
+c removed 10@4
+c lvl (-1) | 0   | 1  | 2               | 3  |
+c val ( 0) | -1  | 2  | 3 -4 -9 -6 8 5  | 7  |
+c why ( f) | f   | d  | d f  f  f  f f  | d  |
+c cb_decide:
+c decision counts: 1 1 1 2
+c returning decision: -10
+c notify_new_decision_level:
+c 4
+c notify_assignment:
+c decided: -10@4
+c lvl (-1) | 0   | 1  | 2               | 3  | 4    |
+c val ( 0) | -1  | 2  | 3 -4 -9 -6 8 5  | 7  | -10  |
+c why ( f) | f   | d  | d f  f  f  f f  | d  | d    |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: -10 internal: -10
+c watched clauses:
+c returning b = 0
+c checking literal: 7 internal: 7
+c watched clauses:
+c 7 -4 -2 8 also by: -4 internal: -4
+c 7 -4 -8 5 also by: -4 internal: -4
+c 7 8 also by: 8 internal: 8
+c returning b = 0
+c 5 is not a decision -> b = max(2,2)
+c 8 is not a decision -> b = max(2,2)
+c -6 is not a decision -> b = max(2,2)
+c -9 is not a decision -> b = max(2,2)
+c -4 is not a decision -> b = max(2,2)
+c dl of 3 is 2(0 or b)
+c -1 2 3 -4 5 -6 8 -9
+c
+c notify_backtrack:
+c to level 1
+c removed -10@4
+c removed 7@3
+c removed 5@2
+c removed 8@2
+c removed -6@2
+c removed -9@2
+c removed -4@2
+c removed 3@2
+c lvl (-1) | 0   | 1  |
+c val ( 0) | -1  | 2  |
+c why ( f) | f   | d  |
+c cb_decide:
+c decision counts: 1 2
+c returning decision: -3
+c notify_new_decision_level:
+c 2
+c notify_assignment:
+c decided: -3@2
+c lvl (-1) | 0   | 1  | 2   |
+c val ( 0) | -1  | 2  | -3  |
+c why ( f) | f   | d  | d   |
+c cb_decide:
+c decision counts: 1 2 1
+c returning decision: 4
+c notify_new_decision_level:
+c 3
+c notify_assignment:
+c decided: 4@3
+c forced: 5@3
+c lvl (-1) | 0   | 1  | 2   | 3    |
+c val ( 0) | -1  | 2  | -3  | 4 5  |
+c why ( f) | f   | d  | d   | d f  |
+c cb_decide:
+c decision counts: 1 2 1 1
+c returning decision: 6
+c notify_new_decision_level:
+c 4
+c notify_backtrack:
+c to level 3
+c lvl (-1) | 0   | 1  | 2   | 3    |
+c val ( 0) | -1  | 2  | -3  | 4 5  |
+c why ( f) | f   | d  | d   | d f  |
+c notify_assignment:
+c forced: -6@3
+c lvl (-1) | 0   | 1  | 2   | 3       |
+c val ( 0) | -1  | 2  | -3  | 4 5 -6  |
+c why ( f) | f   | d  | d   | d f f   |
+c notify_assignment:
+c forced: 9@3
+c forced: 10@3
+c lvl (-1) | 0   | 1  | 2   | 3            |
+c val ( 0) | -1  | 2  | -3  | 4 5 -6 9 10  |
+c why ( f) | f   | d  | d   | d f f  f f   |
+c cb_decide:
+c decision counts: 1 2 1 1 0
+c returning decision: 7
+c notify_new_decision_level:
+c 4
+c notify_assignment:
+c decided: 7@4
+c lvl (-1) | 0   | 1  | 2   | 3            | 4  |
+c val ( 0) | -1  | 2  | -3  | 4 5 -6 9 10  | 7  |
+c why ( f) | f   | d  | d   | d f f  f f   | d  |
+c cb_decide:
+c decision counts: 1 2 1 1 1 0
+c returning decision: 8
+c notify_new_decision_level:
+c 5
+c notify_assignment:
+c decided: 8@5
+c lvl (-1) | 0   | 1  | 2   | 3            | 4  | 5  |
+c val ( 0) | -1  | 2  | -3  | 4 5 -6 9 10  | 7  | 8  |
+c why ( f) | f   | d  | d   | d f f  f f   | d  | d  |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: 8 internal: 8
+c watched clauses:
+c 8 6 -3 10 9 also by: 6 internal: 6
+c b = max(0,5)
+c 7 8 also by: 7 internal: 7
+c 9 8 -3 also by: 9 internal: 9
+c 7 8 -2 -4 also by: 7 internal: 7
+c returning b = 5
+c 10 is not a decision -> b = max(5,3)
+c 9 is not a decision -> b = max(5,3)
+c -6 is not a decision -> b = max(5,3)
+c 5 is not a decision -> b = max(5,3)
+c -1 is not a decision -> b = max(5,0)
+c -1 2 -3 4 5 -6 7 8 9 10
+c
+c highest dl with positive decision: 5
+c notify_backtrack:
+c to level 4
+c removed 8@5
+c lvl (-1) | 0   | 1  | 2   | 3            | 4  |
+c val ( 0) | -1  | 2  | -3  | 4 5 -6 9 10  | 7  |
+c why ( f) | f   | d  | d   | d f f  f f   | d  |
+c cb_decide:
+c decision counts: 1 2 1 1 2
+c returning decision: -8
+c notify_new_decision_level:
+c 5
+c notify_assignment:
+c decided: -8@5
+c lvl (-1) | 0   | 1  | 2   | 3            | 4  | 5   |
+c val ( 0) | -1  | 2  | -3  | 4 5 -6 9 10  | 7  | -8  |
+c why ( f) | f   | d  | d   | d f f  f f   | d  | d   |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: -8 internal: -8
+c watched clauses:
+c 5 -8 9 also by: 5 internal: 5
+c -8 9 -1 also by: 9 internal: 9
+c 7 -8 -4 5 also by: 7 internal: 7
+c returning b = 0
+c checking literal: 7 internal: 7
+c watched clauses:
+c 7 8 -2 -4 also by: 8 internal: 8
+c b = max(0,4)
+c 7 -8 -4 5 also by: -8 internal: -8
+c b = max(4,4)
+c 7 8 also by: 8 internal: 8
+c b = max(4,4)
+c returning b = 4
+c 10 is not a decision -> b = max(4,3)
+c 9 is not a decision -> b = max(4,3)
+c -6 is not a decision -> b = max(4,3)
+c 5 is not a decision -> b = max(4,3)
+c -1 is not a decision -> b = max(4,0)
+c -1 2 -3 4 5 -6 7 9 10
+c
+c notify_backtrack:
+c to level 3
+c removed -8@5
+c removed 7@4
+c lvl (-1) | 0   | 1  | 2   | 3            |
+c val ( 0) | -1  | 2  | -3  | 4 5 -6 9 10  |
+c why ( f) | f   | d  | d   | d f f  f f   |
+c cb_decide:
+c decision counts: 1 2 1 2
+c returning decision: -7
+c notify_new_decision_level:
+c 4
+c notify_assignment:
+c decided: -7@4
+c forced: 8@4
+c lvl (-1) | 0   | 1  | 2   | 3            | 4     |
+c val ( 0) | -1  | 2  | -3  | 4 5 -6 9 10  | -7 8  |
+c why ( f) | f   | d  | d   | d f f  f f   | d  f  |
+c cb_check_found_model:
+c starting implicant shrinking
+c 8 is not a decision -> b = max(4,4)
+c dl of -7 is 4(0 or b)
+c -1 2 -3 4 5 -6 -7 8 9 10
+c
+c highest dl with positive decision: 3
+c notify_backtrack:
+c to level 2
+c removed 8@4
+c removed -7@4
+c removed 10@3
+c removed 9@3
+c removed -6@3
+c removed 5@3
+c removed 4@3
+c lvl (-1) | 0   | 1  | 2   |
+c val ( 0) | -1  | 2  | -3  |
+c why ( f) | f   | d  | d   |
+c cb_decide:
+c decision counts: 1 2 2
+c returning decision: -4
+c notify_new_decision_level:
+c 3
+c notify_assignment:
+c decided: -4@3
+c forced: -9@3
+c forced: -6@3
+c lvl (-1) | 0   | 1  | 2   | 3         |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  |
+c why ( f) | f   | d  | d   | d  f  f   |
+c cb_decide:
+c decision counts: 1 2 2 1
+c returning decision: 5
+c notify_new_decision_level:
+c 4
+c notify_assignment:
+c decided: 5@4
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  |
+c why ( f) | f   | d  | d   | d  f  f   | d  |
+c cb_decide:
+c decision counts: 1 2 2 1 1
+c returning decision: 7
+c notify_new_decision_level:
+c 5
+c notify_assignment:
+c decided: 7@5
+c forced: 10@5
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  | 5     |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  | 7 10  |
+c why ( f) | f   | d  | d   | d  f  f   | d  | d f   |
+c cb_decide:
+c decision counts: 1 2 2 1 1 1
+c returning decision: 8
+c notify_new_decision_level:
+c 6
+c notify_assignment:
+c decided: 8@6
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  | 5     | 6  |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  | 7 10  | 8  |
+c why ( f) | f   | d  | d   | d  f  f   | d  | d f   | d  |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: 8 internal: 8
+c watched clauses:
+c 8 6 -3 10 9 also by: 6 internal: 6
+c b = max(0,6)
+c 7 8 also by: 7 internal: 7
+c 9 8 -3 also by: 9 internal: 9
+c b = max(6,6)
+c 7 8 -2 -4 also by: 7 internal: 7
+c returning b = 6
+c 10 is not a decision -> b = max(6,5)
+c -6 is not a decision -> b = max(6,3)
+c -9 is not a decision -> b = max(6,3)
+c -1 is not a decision -> b = max(6,0)
+c -1 2 -3 -4 5 -6 7 8 -9 10
+c
+c highest dl with positive decision: 6
+c notify_backtrack:
+c to level 5
+c removed 8@6
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  | 5     |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  | 7 10  |
+c why ( f) | f   | d  | d   | d  f  f   | d  | d f   |
+c cb_decide:
+c decision counts: 1 2 2 1 1 2
+c returning decision: -8
+c notify_new_decision_level:
+c 6
+c notify_assignment:
+c decided: -8@6
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  | 5     | 6   |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  | 7 10  | -8  |
+c why ( f) | f   | d  | d   | d  f  f   | d  | d f   | d   |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: -8 internal: -8
+c watched clauses:
+c 5 -8 9 also by: 5 internal: 5
+c -8 9 -1 also by: 9 internal: 9
+c b = max(0,6)
+c 7 -8 -4 5 also by: 7 internal: 7
+c returning b = 6
+c 10 is not a decision -> b = max(6,5)
+c -6 is not a decision -> b = max(6,3)
+c -9 is not a decision -> b = max(6,3)
+c -1 is not a decision -> b = max(6,0)
+c -1 2 -3 -4 5 -6 7 -8 -9 10
+c
+c highest dl with positive decision: 5
+c notify_backtrack:
+c to level 4
+c removed -8@6
+c removed 10@5
+c removed 7@5
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  |
+c why ( f) | f   | d  | d   | d  f  f   | d  |
+c cb_decide:
+c decision counts: 1 2 2 1 2
+c returning decision: -7
+c notify_new_decision_level:
+c 5
+c notify_assignment:
+c decided: -7@5
+c forced: 8@5
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  | 5     |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  | -7 8  |
+c why ( f) | f   | d  | d   | d  f  f   | d  | d  f  |
+c cb_decide:
+c decision counts: 1 2 2 1 2 1
+c returning decision: 10
+c notify_new_decision_level:
+c 6
+c notify_assignment:
+c decided: 10@6
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  | 5     | 6   |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  | -7 8  | 10  |
+c why ( f) | f   | d  | d   | d  f  f   | d  | d  f  | d   |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: 10 internal: 10
+c watched clauses:
+c 10 -7 -4 8 -1 also by: -7 internal: -7
+c 2 10 4 8 also by: 2 internal: 2
+c 10 -1 3 2 8 also by: -1 internal: -1
+c 10 9 1 -8 -4 also by: 9 internal: 9
+c b = max(0,6)
+c 10 -9 -2 -5 also by: -9 internal: -9
+c 10 -7 3 -2 -5 also by: -7 internal: -7
+c 2 10 1 also by: 2 internal: 2
+c returning b = 6
+c 8 is not a decision -> b = max(6,5)
+c -6 is not a decision -> b = max(6,3)
+c -9 is not a decision -> b = max(6,3)
+c -1 is not a decision -> b = max(6,0)
+c -1 2 -3 -4 5 -6 -7 8 -9 10
+c
+c highest dl with positive decision: 6
+c notify_backtrack:
+c to level 5
+c removed 10@6
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  | 5     |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  | -7 8  |
+c why ( f) | f   | d  | d   | d  f  f   | d  | d  f  |
+c cb_decide:
+c decision counts: 1 2 2 1 2 2
+c returning decision: -10
+c notify_new_decision_level:
+c 6
+c notify_assignment:
+c decided: -10@6
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  | 5     | 6    |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  | -7 8  | -10  |
+c why ( f) | f   | d  | d   | d  f  f   | d  | d  f  | d    |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: -10 internal: -10
+c watched clauses:
+c returning b = 0
+c 8 is not a decision -> b = max(5,5)
+c dl of -7 is 5(0 or b)
+c -1 2 -3 -4 5 -6 -7 8 -9
+c
+c notify_backtrack:
+c to level 4
+c removed -10@6
+c removed 8@5
+c removed -7@5
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  |
+c why ( f) | f   | d  | d   | d  f  f   | d  |
+c cb_decide:
+c decision counts: 1 2 2 1 3
+c returning decision: -7
+c notify_new_decision_level:
+c 5
+c notify_assignment:
+c decided: -7@5
+c decision was already made twice on that level, false_backtrack = true
+c forced: 8@5
+c lvl (-1) | 0   | 1  | 2   | 3         | 4  | 5     |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | 5  | -7 8  |
+c why ( f) | f   | d  | d   | d  f  f   | d  | d  f  |
+c cb_decide:
+c highest dl with positive decision: 4
+c backtracking to: 3 to avoid duplication
+c notify_backtrack:
+c to level 3
+c removed 8@5
+c removed -7@5
+c removed 5@4
+c lvl (-1) | 0   | 1  | 2   | 3         |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  |
+c why ( f) | f   | d  | d   | d  f  f   |
+end false_backtrack
+c decision counts: 1 2 2 2
+c saved decision: -5
+c returning decision: -5
+c cb_decide:
+c found saved decision: -5
+c returning decision: -5
+c notify_new_decision_level:
+c 4
+c notify_assignment:
+c decided: -5@4
+c forced: -8@4
+c forced: 7@4
+c lvl (-1) | 0   | 1  | 2   | 3         | 4        |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | -5 -8 7  |
+c why ( f) | f   | d  | d   | d  f  f   | d  f  f  |
+c cb_decide:
+c decision counts: 1 2 2 2 1
+c returning decision: 10
+c notify_new_decision_level:
+c 5
+c notify_assignment:
+c decided: 10@5
+c lvl (-1) | 0   | 1  | 2   | 3         | 4        | 5   |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | -5 -8 7  | 10  |
+c why ( f) | f   | d  | d   | d  f  f   | d  f  f  | d   |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: 10 internal: 10
+c watched clauses:
+c 10 -7 -4 8 -1 also by: -7 internal: -7
+c b = max(0,5)
+c 2 10 4 8 also by: 2 internal: 2
+c 10 -1 3 2 8 also by: -1 internal: -1
+c 10 9 1 -8 -4 also by: 9 internal: 9
+c b = max(5,5)
+c 10 -9 -2 -5 also by: -9 internal: -9
+c 10 -7 3 -2 -5 also by: -7 internal: -7
+c b = max(5,5)
+c 2 10 1 also by: 2 internal: 2
+c returning b = 5
+c 7 is not a decision -> b = max(5,4)
+c -8 is not a decision -> b = max(5,4)
+c -6 is not a decision -> b = max(5,3)
+c -9 is not a decision -> b = max(5,3)
+c -1 is not a decision -> b = max(5,0)
+c -1 2 -3 -4 -5 -6 7 -8 -9 10
+c
+c highest dl with positive decision: 5
+c notify_backtrack:
+c to level 4
+c removed 10@5
+c lvl (-1) | 0   | 1  | 2   | 3         | 4        |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | -5 -8 7  |
+c why ( f) | f   | d  | d   | d  f  f   | d  f  f  |
+c cb_decide:
+c decision counts: 1 2 2 2 2
+c returning decision: -10
+c notify_new_decision_level:
+c 5
+c notify_assignment:
+c decided: -10@5
+c lvl (-1) | 0   | 1  | 2   | 3         | 4        | 5    |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | -5 -8 7  | -10  |
+c why ( f) | f   | d  | d   | d  f  f   | d  f  f  | d    |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: -10 internal: -10
+c watched clauses:
+c returning b = 0
+c 7 is not a decision -> b = max(4,4)
+c -8 is not a decision -> b = max(4,4)
+c dl of -5 is 4(0 or b)
+c -1 2 -3 -4 -5 -6 7 -8 -9
+c
+c notify_backtrack:
+c to level 3
+c removed -10@5
+c removed 7@4
+c removed -8@4
+c removed -5@4
+c lvl (-1) | 0   | 1  | 2   | 3         |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  |
+c why ( f) | f   | d  | d   | d  f  f   |
+c cb_decide:
+c decision counts: 1 2 2 3
+c returning decision: -5
+c notify_new_decision_level:
+c 4
+c notify_assignment:
+c decided: -5@4
+c decision was already made twice on that level, false_backtrack = true
+c forced: -8@4
+c forced: 7@4
+c lvl (-1) | 0   | 1  | 2   | 3         | 4        |
+c val ( 0) | -1  | 2  | -3  | -4 -9 -6  | -5 -8 7  |
+c why ( f) | f   | d  | d   | d  f  f   | d  f  f  |
+c cb_decide:
+c highest dl with positive decision: 1
+c backtracking to: 0 to avoid duplication
+c notify_backtrack:
+c to level 0
+c removed 7@4
+c removed -8@4
+c removed -5@4
+c removed -6@3
+c removed -9@3
+c removed -4@3
+c removed -3@2
+c removed 2@1
+c lvl (-1) | 0   |
+c val ( 0) | -1  |
+c why ( f) | f   |
+end false_backtrack
+c decision counts: 2
+c saved decision: -2
+c returning decision: -2
+c cb_decide:
+c found saved decision: -2
+c returning decision: -2
+c notify_new_decision_level:
+c 1
+c notify_assignment:
+c decided: -2@1
+c forced: 10@1
+c forced: 3@1
+c lvl (-1) | 0   | 1        |
+c val ( 0) | -1  | -2 10 3  |
+c why ( f) | f   | d  f  f  |
+c cb_decide:
+c decision counts: 2 1
+c returning decision: 4
+c notify_new_decision_level:
+c 2
+c notify_assignment:
+c decided: 4@2
+c forced: 5@2
+c lvl (-1) | 0   | 1        | 2    |
+c val ( 0) | -1  | -2 10 3  | 4 5  |
+c why ( f) | f   | d  f  f  | d f  |
+c cb_decide:
+c decision counts: 2 1 1
+c returning decision: 6
+c notify_new_decision_level:
+c 3
+c notify_backtrack:
+c to level 2
+c lvl (-1) | 0   | 1        | 2    |
+c val ( 0) | -1  | -2 10 3  | 4 5  |
+c why ( f) | f   | d  f  f  | d f  |
+c notify_assignment:
+c forced: -6@2
+c lvl (-1) | 0   | 1        | 2       |
+c val ( 0) | -1  | -2 10 3  | 4 5 -6  |
+c why ( f) | f   | d  f  f  | d f f   |
+c notify_assignment:
+c forced: 9@2
+c lvl (-1) | 0   | 1        | 2         |
+c val ( 0) | -1  | -2 10 3  | 4 5 -6 9  |
+c why ( f) | f   | d  f  f  | d f f  f  |
+c cb_decide:
+c decision counts: 2 1 1 0
+c returning decision: 7
+c notify_new_decision_level:
+c 3
+c notify_assignment:
+c decided: 7@3
+c lvl (-1) | 0   | 1        | 2         | 3  |
+c val ( 0) | -1  | -2 10 3  | 4 5 -6 9  | 7  |
+c why ( f) | f   | d  f  f  | d f f  f  | d  |
+c cb_decide:
+c decision counts: 2 1 1 1 0
+c returning decision: 8
+c notify_new_decision_level:
+c 4
+c notify_assignment:
+c decided: 8@4
+c lvl (-1) | 0   | 1        | 2         | 3  | 4  |
+c val ( 0) | -1  | -2 10 3  | 4 5 -6 9  | 7  | 8  |
+c why ( f) | f   | d  f  f  | d f f  f  | d  | d  |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: 8 internal: 8
+c watched clauses:
+c 8 6 -3 10 9 also by: 6 internal: 6
+c b = max(0,4)
+c 7 8 also by: 7 internal: 7
+c 9 8 -3 also by: 9 internal: 9
+c 7 8 -2 -4 also by: 7 internal: 7
+c returning b = 4
+c 9 is not a decision -> b = max(4,2)
+c -6 is not a decision -> b = max(4,2)
+c 5 is not a decision -> b = max(4,2)
+c 3 is not a decision -> b = max(4,1)
+c 10 is not a decision -> b = max(4,1)
+c -1 is not a decision -> b = max(4,0)
+c -1 -2 3 4 5 -6 7 8 9 10
+c
+c highest dl with positive decision: 4
+c notify_backtrack:
+c to level 3
+c removed 8@4
+c lvl (-1) | 0   | 1        | 2         | 3  |
+c val ( 0) | -1  | -2 10 3  | 4 5 -6 9  | 7  |
+c why ( f) | f   | d  f  f  | d f f  f  | d  |
+c cb_decide:
+c decision counts: 2 1 1 2
+c returning decision: -8
+c notify_new_decision_level:
+c 4
+c notify_assignment:
+c decided: -8@4
+c lvl (-1) | 0   | 1        | 2         | 3  | 4   |
+c val ( 0) | -1  | -2 10 3  | 4 5 -6 9  | 7  | -8  |
+c why ( f) | f   | d  f  f  | d f f  f  | d  | d   |
+c cb_check_found_model:
+c starting implicant shrinking
+c checking literal: -8 internal: -8
+c watched clauses:
+c 5 -8 9 also by: 5 internal: 5
+c -8 9 -1 also by: 9 internal: 9
+c 7 -8 -4 5 also by: 7 internal: 7
+c -7 -8 5 -10 also by: -7 internal: -7
+c b = max(0,4)
+c returning b = 4
+c 9 is not a decision -> b = max(4,2)
+c -6 is not a decision -> b = max(4,2)
+c 5 is not a decision -> b = max(4,2)
+c 3 is not a decision -> b = max(4,1)
+c 10 is not a decision -> b = max(4,1)
+c -1 is not a decision -> b = max(4,0)
+c -1 -2 3 4 5 -6 7 -8 9 10
+c
+c highest dl with positive decision: 3
+c notify_backtrack:
+c to level 2
+c removed -8@4
+c removed 7@3
+c lvl (-1) | 0   | 1        | 2         |
+c val ( 0) | -1  | -2 10 3  | 4 5 -6 9  |
+c why ( f) | f   | d  f  f  | d f f  f  |
+c cb_decide:
+c decision counts: 2 1 2
+c returning decision: -7
+c notify_new_decision_level:
+c 3
+c notify_assignment:
+c decided: -7@3
+c forced: 8@3
+c lvl (-1) | 0   | 1        | 2         | 3     |
+c val ( 0) | -1  | -2 10 3  | 4 5 -6 9  | -7 8  |
+c why ( f) | f   | d  f  f  | d f f  f  | d  f  |
+c cb_check_found_model:
+c starting implicant shrinking
+c 8 is not a decision -> b = max(3,3)
+c dl of -7 is 3(0 or b)
+c -1 -2 3 4 5 -6 -7 8 9 10
+c
+c highest dl with positive decision: 2
+c notify_backtrack:
+c to level 1
+c removed 8@3
+c removed -7@3
+c removed 9@2
+c removed -6@2
+c removed 5@2
+c removed 4@2
+c lvl (-1) | 0   | 1        |
+c val ( 0) | -1  | -2 10 3  |
+c why ( f) | f   | d  f  f  |
+c cb_decide:
+c decision counts: 2 2
+c returning decision: -4
+c notify_new_decision_level:
+c 2
+c notify_assignment:
+c decided: -4@2
+c forced: -9@2
+c forced: -6@2
+c forced: 8@2
+c forced: 5@2
+c forced: -7@2
+c lvl (-1) | 0   | 1        | 2                |
+c val ( 0) | -1  | -2 10 3  | -4 -9 -6 8 5 -7  |
+c why ( f) | f   | d  f  f  | d  f  f  f f f   |
+c cb_check_found_model:
+c starting implicant shrinking
+c -7 is not a decision -> b = max(2,2)
+c 5 is not a decision -> b = max(2,2)
+c 8 is not a decision -> b = max(2,2)
+c -6 is not a decision -> b = max(2,2)
+c -9 is not a decision -> b = max(2,2)
+c dl of -4 is 2(0 or b)
+c -1 -2 3 -4 5 -6 -7 8 -9 10
+c
+c highest dl with positive decision: -1
+c all models: -1 2 3 -4 5 -6 7 8 -9 10 | -1 2 3 -4 5 -6 8 -9 | -1 2 -3 4 5 -6 7 8 9 10 | -1 2 -3 4 5 -6 7 9 10 | -1 2 -3 4 5 -6 -7 8 9 10 | -1 2 -3 -4 5 -6 7 8 -9 10 | -1 2 -3 -4 5 -6 7 -8 -9 10 | -1 2 -3 -4 5 -6 -7 8 -9 10 | -1 2 -3 -4 5 -6 -7 8 -9 | -1 2 -3 -4 -5 -6 7 -8 -9 10 | -1 2 -3 -4 -5 -6 7 -8 -9 | -1 -2 3 4 5 -6 7 8 9 10 | -1 -2 3 4 5 -6 7 -8 9 10 | -1 -2 3 4 5 -6 -7 8 9 10 | -1 -2 3 -4 5 -6 -7 8 -9 10 
+10
+c notify_backtrack:
+c to level 0
+c removed -7@2
+c removed 5@2
+c removed 8@2
+c removed -6@2
+c removed -9@2
+c removed -4@2
+c removed 3@1
+c removed 10@1
+c removed -2@1
+c lvl (-1) | 0   |
+c val ( 0) | -1  |
+c why ( f) | f   |

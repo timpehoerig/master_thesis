@@ -53,26 +53,31 @@ bool sat(tcnf cnf, tclause model) {
 }
 
 
-int check_literal(int v, int b, std::vector<int> T, std::vector<int> dls, std::vector<int> values, CaDiCaL::Internal *internal) {
-    int internal_v = internal->external->e2i[v];
-    if (VERBOSE) std::cout << "c checking literal: " + std::to_string(v) << " internal: " << std::to_string(internal_v) << std::endl;
+int check_literal(int e_var, int b, std::vector<int> T, std::vector<int> dls, std::vector<int> values, CaDiCaL::Internal *internal) {
+    int e_lit = e_var * values[e_var];
+    int i_var = internal->external->e2i[e_var];
+    int i_lit = internal->external->vals[i_var] ? i_var : -i_var;
+    if (VERBOSE) std::cout << "c checking literal: " + std::to_string(e_lit) << " internal: " << std::to_string(i_lit) << std::endl;
     if (VERBOSE) std::cout << "c watched clauses:" << std::endl;
-    for (auto watch : internal->watches(internal_v)) {
+    for (auto watch : internal->watches(i_lit)) {
         if (VERBOSE) {
             std::cout << "c ";
             for (int i = 0; i < watch.size; i++) {
                 std::cout << std::to_string(watch.clause->literals[i]) << " ";
             }
         }
-        int il1 = watch.clause->literals[0]; // should always be internal_l but isn't
-        int il2 = watch.clause->literals[1]; // second watched literal
+        int i_wl1 = watch.clause->literals[0];
+        int i_wl2 = watch.clause->literals[1];
+
         // other is now the other watched literal
-        int other = il1;
-        if (std::abs(il1) == internal_v) other = il2; 
-        if (VERBOSE) std::cout << "also by: " << std::to_string(other) << std::endl;
-        if (!(std::count(T.begin(), T.end(), std::abs(other)) > 0 && values[other] * other > 0)) {
-            if (VERBOSE) std::cout << "c b = max(" << std::to_string(b) << "," << std::to_string(dls[v]) << ")" << std::endl;
-            b = std::max(b, dls[v]);
+        int i_other_lit = i_lit == i_wl1 ? i_wl2 : i_wl1;
+        int e_other_lit = internal->externalize(i_other_lit);
+        int e_other_var = std::abs(e_other_lit);
+
+        if (VERBOSE) std::cout << "also by: " << std::to_string(e_other_lit) << " internal: " << std::to_string(i_other_lit) << std::endl;
+        if (!(std::count(T.begin(), T.end(), e_other_var) > 0 && values[e_other_var] * e_other_lit > 0)) {
+            if (VERBOSE) std::cout << "c b = max(" << std::to_string(b) << "," << std::to_string(dls[e_var]) << ")" << std::endl;
+            b = std::max(b, dls[e_var]);
         }
     }
     if (VERBOSE) std::cout << "c returning b = " << std::to_string(b) << std::endl;
