@@ -80,14 +80,15 @@ int check_literal(int e_var, int b, ivec T, ivec dls, ivec values, CaDiCaL::Inte
 }
 
 
-int implicant_shrinking(ivec T, bvec is_ds, ivec dls, ivec values, CaDiCaL::Internal *internal) {
+int implicant_shrinking(ivec T, bvec is_ds, ivec dls, ivec values, ivec dcpl, CaDiCaL::Internal *internal) {
     ivec T_copy(T);
     if (VERBOSE) std::cout << "c starting implicant shrinking" << std::endl;
     int b = 0;
     while (T_copy.size()) {
         int v = T_copy.back();
         T_copy.pop_back();
-        if (!is_ds[v] || values[v] < 0) {
+        // (is_ds[v] && dcpl[dls[v] - 1] > 1) == values[v] < 0
+        if (!is_ds[v] || (is_ds[v] && dcpl[dls[v] - 1] > 1)) {
             b = std::max(b, dls[v]);
             if (VERBOSE) std::cout << "c " << std::to_string(v * values[v]) << " is not a decision -> b = max(" << std::to_string(b) << "," << std::to_string(dls[v]) << ")" << std::endl;
         } else if (dls[v] > b) {
@@ -193,7 +194,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
             int b = dl;
             bool found_model = false;
             if (!false_backtrack) {
-                if (SHRINK) b = implicant_shrinking(stack, is_ds, dls, values, internal);
+                if (SHRINK) b = implicant_shrinking(stack, is_ds, dls, values, decision_counts_per_level, internal);
                 tmodel new_model;
                 for (int lit : model) {
                     if (dls[std::abs(lit)] <= b) new_model.push_back(lit);
