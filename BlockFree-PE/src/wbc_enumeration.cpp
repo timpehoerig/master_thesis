@@ -2,22 +2,17 @@
 #include "../../cadical/src/tracer.hpp"
 #include "../../cadical/src/internal.hpp"
 #include "../../cadical/src/external.hpp"
+#include "../utils/argparser.hpp"
+#include "../utils/strings.hpp"
+#include "../utils/parser.hpp"
+#include "../utils/types.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <algorithm>
-#include "../utils/argparser.hpp"
-#include "../utils/strings.hpp"
-#include "../utils/parser.hpp"
 #include <unordered_set>
-
-
-using tclause = std::vector<int>;
-using tcnf = std::vector<tclause>;
-
-
-// map dl -> d
 
 
 // global meta variables
@@ -35,7 +30,7 @@ const char* PROOF_OUT = "tmp_wbcp_proof.txt";
 
 
 // check sat_clause without index
-bool sat_clause(tclause c, tclause model) {
+bool sat_clause(tclause c, tmodel model) {
     for (int lit : c) {
         if (std::find(model.begin(), model.end(), lit) != model.end()) {
             return true;
@@ -45,7 +40,7 @@ bool sat_clause(tclause c, tclause model) {
 }
 
 
-bool sat(tcnf cnf, tclause model) {
+bool sat(tcnf cnf, tmodel model) {
     for (tclause c : cnf) {
         if (!sat_clause(c, model)) return false;
     }
@@ -53,7 +48,7 @@ bool sat(tcnf cnf, tclause model) {
 }
 
 
-int check_literal(int e_var, int b, std::vector<int> T, std::vector<int> dls, std::vector<int> values, CaDiCaL::Internal *internal) {
+int check_literal(int e_var, int b, ivec T, ivec dls, ivec values, CaDiCaL::Internal *internal) {
     int e_lit = e_var * values[e_var];
     int i_var = internal->external->e2i[e_var];
     int i_lit = internal->external->vals[i_var] ? i_var : -i_var;
@@ -85,8 +80,8 @@ int check_literal(int e_var, int b, std::vector<int> T, std::vector<int> dls, st
 }
 
 
-int implicant_shrinking(std::vector<int> T, std::vector<bool> is_ds, std::vector<int> dls, std::vector<int> values, CaDiCaL::Internal *internal) {
-    std::vector<int> T_copy(T);
+int implicant_shrinking(ivec T, bvec is_ds, ivec dls, ivec values, CaDiCaL::Internal *internal) {
+    ivec T_copy(T);
     if (VERBOSE) std::cout << "c starting implicant shrinking" << std::endl;
     int b = 0;
     while (T_copy.size()) {
@@ -114,12 +109,12 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
         CaDiCaL::Internal *internal;
 
         // stack of assigned variables
-        std::vector<int> stack;
+        ivec stack;
 
         // arrays where index == var
-        std::vector<int> dls;
-        std::vector<bool> is_ds;
-        std::vector<int> values;
+        ivec dls;
+        bvec is_ds;
+        ivec values;
 
         // decision count
         int dc = 0;
@@ -149,9 +144,9 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
         int decision_b4_backtracked = 0;
 
         // counting decisions on levels
-        std::vector<int> decision_counts_per_level;
+        ivec decision_counts_per_level;
 
-        tcnf all_models;
+        tmodels all_models;
 
         void push(int lit, int dl, bool is_decision) {
             int var = std::abs(lit);
@@ -191,7 +186,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
             return highest_dl;
         };
 
-        bool cb_check_found_model (const tclause &model) override {
+        bool cb_check_found_model (const tmodel &model) override {
 
             if (VERBOSE) std::cout << "c cb_check_found_model:" << std::endl;
 
@@ -199,7 +194,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
             bool found_model = false;
             if (!false_backtrack) {
                 if (SHRINK) b = implicant_shrinking(stack, is_ds, dls, values, internal);
-                tclause new_model;
+                tmodel new_model;
                 for (int lit : model) {
                     if (dls[std::abs(lit)] <= b) new_model.push_back(lit);
                 }
@@ -237,7 +232,7 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
         int cb_add_external_clause_lit () override { return 0; };
 
         // this function is called when observed variables are assigned (either by BCP, Decide, or Learning a unit clause). It has a single read-only argument containing literals that became satisfied by the new assignment. In case the notification reports more than one literal, it is guaranteed that all of the reported literals were assigned on the same (current) decision level.
-        void notify_assignment(const std::vector<int> &list) override {
+        void notify_assignment(const ivec &list) override {
             if (VERBOSE) std::cout << "c notify_assignment:" << std::endl;
 
             for (int lit : list) {

@@ -1,10 +1,7 @@
 #ifndef PARSER
 #define PARSER
 
-#include <vector>
-
-using tclause = std::vector<int>;
-using tcnf = std::vector<tclause>;
+#include "types.hpp"
 
 bool get_projected_vars(char* path, tclause& vars);
 

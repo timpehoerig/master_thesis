@@ -4,7 +4,7 @@
 
 
 // to_string(model) == "x y -z"
-std::string to_string(tclause model, bool neg) {
+std::string to_string(ivec model, bool neg) {
     std::string str;
 
     for (int lit : model) {
@@ -24,11 +24,11 @@ std::string to_string(tclause model, bool neg) {
 
 
 // to_string(models) == "model1 | model2"
-std::string to_string(tcnf models, bool neg) {
+std::string to_string(ivvec models, bool neg) {
 
     std::string str;
 
-    for (tclause model : models) {
+    for (ivec model : models) {
         str += to_string(model, neg) + " | ";
     }
 
@@ -40,7 +40,7 @@ std::string to_string(tcnf models, bool neg) {
 }
 
 // to_string(values, dls, is_ds) == ..."
-std::string to_string(const std::vector<int> &stack, const std::vector<int> &values, const std::vector<int> &dls, const std::vector<bool> &is_ds) {
+std::string to_string(const ivec &stack, const ivec &values, const ivec &dls, const bvec &is_ds) {
     std::string top = "c lvl (" + std::to_string(dls[0]) + ")";
     std::string mid = "c val ( " + std::to_string(values[0]) + ")";
     std::string bot = "c why ( " + std::string(is_ds[0] ? "d" : "f") + ")";
