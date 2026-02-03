@@ -92,7 +92,7 @@ int implicant_shrinking(std::vector<int> T, std::vector<bool> is_ds, std::vector
     while (T_copy.size()) {
         int v = T_copy.back();
         T_copy.pop_back();
-        if (!is_ds[v]) {
+        if (!is_ds[v] || values[v] < 0) {
             b = std::max(b, dls[v]);
             if (VERBOSE) std::cout << "c " << std::to_string(v * values[v]) << " is not a decision -> b = max(" << std::to_string(b) << "," << std::to_string(dls[v]) << ")" << std::endl;
         } else if (dls[v] > b) {
