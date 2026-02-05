@@ -13,12 +13,14 @@
 #include <string>
 #include <algorithm>
 #include <unordered_set>
+#include <cassert>
 
 
 // global meta variables
 bool COUNT = false;
 bool VERBOSE = false;
 bool SHRINK = false;
+bool PROFILE = false;
 bool HELP = false;
 
 // cnf must be global so EnumProp can use it
@@ -117,11 +119,6 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
         bvec is_ds;
         ivec values;
 
-        // decision count
-        int dc = 0;
-        // consecutive negative decisions count
-        int cndc = 0;
-
         // decision level
         int dl = 0;
 
@@ -191,6 +188,8 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
 
             if (VERBOSE) std::cout << "c cb_check_found_model:" << std::endl;
 
+            START (check_found_model);
+
             int b = dl;
             bool found_model = false;
             if (!false_backtrack) {
@@ -223,6 +222,8 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
             }
             backtrack = true;
 
+            STOP (check_found_model);
+
             // always return false -> solver can only terminate with UNSAT: no more solutions
             return false;
         };
@@ -235,6 +236,8 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
         // this function is called when observed variables are assigned (either by BCP, Decide, or Learning a unit clause). It has a single read-only argument containing literals that became satisfied by the new assignment. In case the notification reports more than one literal, it is guaranteed that all of the reported literals were assigned on the same (current) decision level.
         void notify_assignment(const ivec &list) override {
             if (VERBOSE) std::cout << "c notify_assignment:" << std::endl;
+
+            START (notify_assignment);
 
             for (int lit : list) {
                 if (lit == last_decision) {
@@ -256,20 +259,26 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
                 }
             }
 
+            STOP (notify_assignment);
+
             if (VERBOSE) std::cout << to_string(stack, values, dls, is_ds);
         };
 
         // the call of this function indicates to the user that on the trail a new decision level has started. The function does not report the actual decision that started this new level or the current decision level — it only reports that a decision happened and thus, the decision level is increased.
         void notify_new_decision_level () override {
             if (VERBOSE) std::cout << "c notify_new_decision_level:" << std::endl;
+            START (notify_new_decision_level);
             dl++;
             if (VERBOSE) std::cout << "c " + std::to_string(dl) << std::endl;
             decision_counts_per_level.push_back(0);
+            STOP (notify_new_decision_level);
         };
 
         // this function indicates that the solver backtracked to a lower decision level. Its single argument reports the new decision level. All assignments that were made above this target decision level must be considered as unassigned.
         void notify_backtrack (size_t new_level) override {
             if (VERBOSE) std::cout << "c notify_backtrack:" << std::endl;
+
+            START (notify_backtrack);
 
             if (VERBOSE) std::cout << "c to level " + std::to_string(new_level) << std::endl;
 
@@ -279,7 +288,6 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
                 int var = stack.back();
                 auto [val, level, is_decision] = pop();
                 if (is_decision) {
-                    dc--;
                     last_decision = 0;
                     pos_new_decsion_b4_backtracked = val * var;
                 }
@@ -295,11 +303,15 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
 
 
             if (VERBOSE) std::cout << to_string(stack, values, dls, is_ds);
+
+            STOP (notify_backtrack);
         };
 
         // called before the solver makes a decision. Return your decision or 0 (solver makes one).
         int cb_decide () override {
             if (VERBOSE) std::cout << "c cb_decide:" << std::endl;
+
+            START (cb_decide);
 
             if (save_decision) {
                 if (VERBOSE) std::cout << "c found saved decision: " + std::to_string(saved_decision) << std::endl;
@@ -351,12 +363,10 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
                 while ((int)decision_counts_per_level.size() > dl + 1) {
                     decision_counts_per_level.pop_back();
                 }
-                if (dc == cndc) cndc++;
             } else {
                 lit = var;
             }
 
-            dc++;
             if (decision_counts_per_level[dl] == 1 && lit > 0) {
                 decision_counts_per_level[dl] = 0;
             }
@@ -372,6 +382,9 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
             last_decision = lit;
             decision_b4_backtracked = lit;
             if (VERBOSE) std::cout << "c returning decision: " + std::to_string(lit) << std::endl;
+
+            STOP (cb_decide);
+
             return lit;
         };
 
@@ -384,10 +397,11 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
 };
 
 
-void arg_parser(int argc, char* argv[], bool& count, bool& verbose, bool& shrink, bool& help) {
+void arg_parser(int argc, char* argv[], bool& count, bool& verbose, bool& profile, bool& shrink, bool& help) {
     std::map<std::string, std::string> parsedArgs = parseArgs(argc, argv);
     count = parsedArgs.count("count") || parsedArgs.count("c");
     verbose = parsedArgs.count("verbose") || parsedArgs.count("v");
+    profile = parsedArgs.count("profile") || parsedArgs.count("p");
     shrink = parsedArgs.count("shrink") || parsedArgs.count("s");
     help = parsedArgs.count("help") || parsedArgs.count("h");
 }
@@ -395,7 +409,7 @@ void arg_parser(int argc, char* argv[], bool& count, bool& verbose, bool& shrink
 
 int main(int argc, char* argv[]) {
     // arg parser
-    arg_parser(argc, argv, COUNT, VERBOSE, SHRINK, HELP);
+    arg_parser(argc, argv, COUNT, VERBOSE, PROFILE, SHRINK, HELP);
 
     if (HELP) {
         std::string msg =
@@ -410,6 +424,7 @@ int main(int argc, char* argv[]) {
             "\t-h --help \t Show this menu\n"
             "\t-c --count \t Returns number of models\n"
             "\t-v --verbose \t Returns the log and all models\n"
+            "\t-p --profile \t Returns statistic about where time was spent\n"
             "\t-s --shrink \t Performs implicant shrinking on found models\n";
         std::cout << msg;
         return 0;
@@ -420,6 +435,7 @@ int main(int argc, char* argv[]) {
         if (COUNT) std::cout << "c \tCOUNT" << std::endl;
         if (VERBOSE) std::cout << "c \tVERBOSE" << std::endl;
         if (SHRINK) std::cout << "c \tSHRINK" << std::endl;
+        if (PROFILE) std::cout << "c \tPROFILE" << std::endl;
     }
 
     // create a new solver instance
@@ -433,6 +449,8 @@ int main(int argc, char* argv[]) {
     solver->set("rephase", false);
     solver->set("log", true);
 
+    // default is 2
+    // solver->set("profile", 2);
 
     // create a new EnumProp instance
     EnumProp *ep = new EnumProp;
@@ -475,6 +493,8 @@ int main(int argc, char* argv[]) {
     // run solver
     if (VERBOSE) std::cout << "c start solving\nc" << std::endl;
     int res = solver->solve();
+
+    if (PROFILE) solver->statistics();
 
     if (VERBOSE) {
         std::cout << "c all models: " + to_string(ep->all_models) << std::endl;
