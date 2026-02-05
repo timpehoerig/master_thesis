@@ -1,6 +1,6 @@
 #!/bin/bash
 
-path_bcp_terminal_out=./tmp_wbcp_terminal_out.txt
+tmp_wbcp_negated_models=./tmp_wbcp_negated_models.txt
 
 path_fuzzed_cnf=./tmp/tmp_fuzzed.cnf
 path_out_bc=./tmp/tmp_terminal_out.txt
@@ -12,10 +12,10 @@ echo "fuzz > $path_fuzzed_cnf"
 ../../cnfuzz/cnfuzz --tiny > $path_fuzzed_cnf
 
 echo "wbcp_enum > $path_out_bc"
-# running bcp_enum with --minimize may lead to a different count of models
+# running bcp_enum with --shrink may lead to a different count of models
 ../src/wbcp_enum -c $path_fuzzed_cnf > $path_out_bc
 
-mv $path_bcp_terminal_out ./tmp/
+mv $tmp_wbcp_negated_models ./tmp/
 
 echo "dualiza > $path_out_dualiza"
 ../../dualiza/dualiza $path_fuzzed_cnf > $path_out_dualiza

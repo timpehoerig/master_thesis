@@ -4,7 +4,7 @@ echo "clean all tmps"
 rm -f tmp*
 
 # paths
-path_bcp_enum_out=./tmp_wbcp_terminal_out.txt
+tmp_wbcp_negated_models=./tmp_wbcp_negated_models.txt
 
 # default path for cnf
 path_fuzzed_cnf=./tmp_fuzzed.cnf
@@ -91,8 +91,8 @@ fi
 
 if $shrink; then
   echo "Script: run checker -s"
-  ./checker -s $path_fuzzed_cnf $path_bcp_enum_out
+  ./checker -s $path_fuzzed_cnf $tmp_wbcp_negated_models
 else
   echo "Script: run checker"
-  ./checker $path_fuzzed_cnf $path_bcp_enum_out
+  ./checker $path_fuzzed_cnf $tmp_wbcp_negated_models
 fi

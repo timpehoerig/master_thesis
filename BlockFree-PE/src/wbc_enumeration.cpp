@@ -27,7 +27,7 @@ bool HELP = false;
 tcnf cnf;
 
 // paths
-const char* TERMINAL_OUT = "tmp_wbcp_terminal_out.txt";
+const char* NEGATED_MODELS = "tmp_wbcp_negated_models.txt";
 const char* PROOF_OUT = "tmp_wbcp_proof.txt";
 
 
@@ -510,7 +510,7 @@ int main(int argc, char* argv[]) {
     }
 
     // write negated models to file
-    std::ofstream file(TERMINAL_OUT);
+    std::ofstream file(NEGATED_MODELS);
 
     if (file.is_open()) {
         int i = 1;
@@ -520,7 +520,7 @@ int main(int argc, char* argv[]) {
         }
         file.close();
     } else {
-        std::cerr << "Unable to open " << TERMINAL_OUT << "." << std::endl;
+        std::cerr << "Unable to open " << NEGATED_MODELS << "." << std::endl;
     }
 
     // disconnect EnumProp
