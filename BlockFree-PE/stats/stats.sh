@@ -35,8 +35,13 @@ read notify_new_decision_level_time notify_new_decision_level_percent < <(
     awk '$NF=="notify_new_decision_level" {gsub(/%/,"",$3); print $2, $3}' "$path_out_wbc"
 )
 
+read shrinking_time shrinking_percent < <(
+    awk '$NF=="shrinking" {gsub(/%/,"",$3); print $2, $3}' "$path_out_wbc"
+)
+
 echo "check_found_model: $check_found_model_time $check_found_model_percent"
 echo "notify_assignment: $notify_assignment_time $notify_assignment_percent"
 echo "notify_backtrack: $notify_backtrack_time $notify_backtrack_percent"
 echo "cb_decide: $cb_decide_time $cb_decide_percent"
 echo "notify_new_decision_level: $notify_new_decision_level_time $notify_new_decision_level_percent"
+echo "shrinking: $shrinking_time $shrinking_percent"

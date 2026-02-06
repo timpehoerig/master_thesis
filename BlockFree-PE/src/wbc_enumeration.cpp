@@ -50,7 +50,7 @@ bool sat(tcnf cnf, tmodel model) {
 }
 
 
-int check_literal(int e_var, int b, ivec T, ivec dls, ivec values, CaDiCaL::Internal *internal) {
+int check_literal(int e_var, int b, ivec Trail, ivec dls, ivec values, int i, CaDiCaL::Internal *internal) {
     int e_lit = e_var * values[e_var];
     int i_var = internal->external->e2i[e_var];
     int i_lit = internal->external->vals[i_var] ? i_var : -i_var;
@@ -72,7 +72,9 @@ int check_literal(int e_var, int b, ivec T, ivec dls, ivec values, CaDiCaL::Inte
         int e_other_var = std::abs(e_other_lit);
 
         if (VERBOSE) std::cout << "also by: " << std::to_string(e_other_lit) << " internal: " << std::to_string(i_other_lit) << std::endl;
-        if (!(std::count(T.begin(), T.end(), e_other_var) > 0 && values[e_other_var] * e_other_lit > 0)) {
+        // if (!(std::count(Trail.begin(), Trail.end(), e_other_var) > 0 && values[e_other_var] * e_other_lit > 0)) {
+        // change search for index comparison (own map lit -> index)
+        if (!(std::count(Trail.begin(), Trail.begin() + i, e_other_var) > 0 && values[e_other_var] * e_other_lit > 0)) {
             if (VERBOSE) std::cout << "c b = max(" << std::to_string(b) << "," << std::to_string(dls[e_var]) << ")" << std::endl;
             b = std::max(b, dls[e_var]);
         }
@@ -83,23 +85,25 @@ int check_literal(int e_var, int b, ivec T, ivec dls, ivec values, CaDiCaL::Inte
 
 
 int implicant_shrinking(ivec T, bvec is_ds, ivec dls, ivec values, ivec dcpl, CaDiCaL::Internal *internal) {
-    ivec T_copy(T);
+    START (shrinking);
     if (VERBOSE) std::cout << "c starting implicant shrinking" << std::endl;
     int b = 0;
-    while (T_copy.size()) {
-        int v = T_copy.back();
-        T_copy.pop_back();
+    int index = T.size() - 1;
+    while (index >= 0) {
+        int v = T[index];
+        index--;
         // (is_ds[v] && dcpl[dls[v] - 1] > 1) == values[v] < 0
         if (!is_ds[v] || (is_ds[v] && dcpl[dls[v] - 1] > 1)) {
             b = std::max(b, dls[v]);
             if (VERBOSE) std::cout << "c " << std::to_string(v * values[v]) << " is not a decision -> b = max(" << std::to_string(b) << "," << std::to_string(dls[v]) << ")" << std::endl;
         } else if (dls[v] > b) {
-            b = check_literal(v, b, T_copy, dls, values, internal);
+            b = check_literal(v, b, T, dls, values, index, internal);
         } else if (dls[v] == 0 || dls[v] == b) {
             if (VERBOSE) std::cout << "c dl of " << std::to_string(v * values[v]) << " is " << std::to_string(dls[v]) << "(0 or b)" << std::endl;
             break;
         }
     }
+    STOP(shrinking);
     return b;
 }
 
@@ -300,7 +304,6 @@ class EnumProp : public CaDiCaL::ExternalPropagator, public CaDiCaL::InternalTra
             }
 
             dl = new_level;
-
 
             if (VERBOSE) std::cout << to_string(stack, values, dls, is_ds);
 
